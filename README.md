@@ -210,19 +210,3 @@ npm install
 # 重新產生 Prisma 客戶端
 npm run db:generate
 ```
-
-### 貢獻指南
-
-1. Fork 專案
-2. 建立功能分支
-3. 遵循程式碼規範（使用 Biome）
-4. 撰寫測試
-5. 提交 Pull Request
-
-### 授權
-
-此專案採用 MIT 授權條款。
-
----
-
-需要協助？請查看 [問題回報](./issues) 或聯繫專案維護者。
