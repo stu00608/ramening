@@ -17,8 +17,15 @@
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
+    "docker:db": "docker-compose up -d postgres",
     "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:logs:web": "docker-compose logs -f web",
+    "docker:logs:db": "docker-compose logs -f postgres",
+    "docker:build": "docker-compose build",
+    "docker:restart": "docker-compose restart web",
+    "setup": "./scripts/init-db.sh"
   },
   "dependencies": {
     "next": "^15.1.0",

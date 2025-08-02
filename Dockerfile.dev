@@ -12,14 +12,30 @@ COPY package*.json ./
 # 安裝依賴
 RUN npm ci
 
-# 複製專案檔案
-COPY . .
+# 複製 Prisma schema 檔案
+COPY prisma ./prisma
 
 # 產生 Prisma 客戶端
 RUN npx prisma generate
 
+# 複製專案檔案
+COPY . .
+
+# 建立一個啟動腳本
+RUN echo '#!/bin/sh\n\
+set -e\n\
+echo "🔧 等待資料庫連線..."\n\
+until npx prisma db push --accept-data-loss --skip-generate >/dev/null 2>&1; do\n\
+  echo "⏳ 等待 PostgreSQL 啟動..."\n\
+  sleep 3\n\
+done\n\
+echo "🗄️ 資料庫 schema 已同步"\n\
+echo "🚀 啟動 Next.js 開發伺服器..."\n\
+exec npm run dev\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
 # 暴露端口
 EXPOSE 3000
 
-# 啟動開發伺服器
-CMD ["npm", "run", "dev"]
+# 使用啟動腳本
+CMD ["/app/start.sh"]

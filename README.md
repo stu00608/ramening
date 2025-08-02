@@ -4,8 +4,6 @@
 
 ## 專案概述
 
-Ramening 是專為拉麵愛好者設計的本地端應用程式，提供：
-
 - **拉麵店搜尋**：整合 Google Places API（限日本地區）
 - **詳細評價記錄**：包含造訪資訊、拉麵品項、照片和評分
 - **評價管理**：直觀的儀表板查看和編輯評價
@@ -57,26 +55,27 @@ Ramening 是專為拉麵愛好者設計的本地端應用程式，提供：
 
 4. **啟動開發環境**
    
-   **選項 A：使用 Docker（推薦）**
+   **選項 A：完整 Docker 環境（推薦）**
    ```bash
-   # 啟動 PostgreSQL 和應用程式
-   npm run docker:up
-   
-   # 初始化資料庫
-   npm run db:migrate
-   npm run db:seed
+   # 一鍵啟動完整開發環境
+   npm run setup
    ```
    
-   **選項 B：本地開發**
+   **選項 B：手動 Docker 啟動**
+   ```bash
+   # 建立並啟動所有服務（PostgreSQL + Next.js）
+   npm run docker:up
+   
+   # 初始化資料庫（首次啟動需要）
+   docker-compose exec -T web npx prisma db push --accept-data-loss
+   ```
+   
+   **選項 C：僅資料庫使用 Docker**
    ```bash
    # 僅啟動 PostgreSQL
-   docker-compose up -d postgres
+   npm run docker:db
    
-   # 初始化資料庫
-   npm run db:migrate
-   npm run db:seed
-   
-   # 啟動開發伺服器
+   # 本地啟動 Next.js
    npm run dev
    ```
 
@@ -112,18 +111,25 @@ npm run db:studio   # 開啟 Prisma Studio
 #### Docker 指令
 
 ```bash
-# 啟動所有服務
+# 啟動所有服務（PostgreSQL + Next.js）
 npm run docker:up
+
+# 僅啟動 PostgreSQL
+npm run docker:db
 
 # 停止所有服務
 npm run docker:down
 
 # 重建並啟動
-docker-compose up --build
+npm run docker:build && npm run docker:up
 
 # 查看日誌
-docker-compose logs -f web
-docker-compose logs -f postgres
+npm run docker:logs       # 所有服務
+npm run docker:logs:web   # Next.js 日誌
+npm run docker:logs:db    # PostgreSQL 日誌
+
+# 重啟 Next.js 服務
+npm run docker:restart
 ```
 
 #### 開發工作流程
