@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log("開始資料庫種子資料建立...");
-  
+
   // 建立一些基本標籤
   const tags = await Promise.all([
     prisma.tag.upsert({

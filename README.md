@@ -165,20 +165,61 @@ npm run docker:restart
 
 ```
 src/
-├── app/                 # Next.js App Router 頁面
-├── components/          # 共用 UI 元件
-├── features/           # 功能模組（package by feature）
-├── lib/                # 工具函式和設定
-├── types/              # TypeScript 類型定義
-└── test/               # 測試設定
+├── app/
+│   ├── api/            # API 路由
+│   │   ├── restaurants/  # 餐廳 CRUD 操作
+│   │   ├── reviews/      # 評價管理和 Instagram 匯出
+│   │   ├── places/       # Google Places API 整合
+│   │   └── upload/       # 照片上傳功能
+│   ├── globals.css     # 全域樣式
+│   ├── layout.tsx      # 根布局
+│   └── page.tsx        # 首頁
+├── lib/
+│   ├── prisma.ts       # Prisma 客戶端
+│   ├── validation.ts   # 資料驗證 schemas
+│   ├── error-handler.ts # 統一錯誤處理
+│   ├── upload.ts       # 圖片上傳處理
+│   ├── instagram-export.ts # Instagram 匯出功能
+│   └── utils.ts        # 通用工具函式
+├── test/
+│   ├── api/            # API 測試
+│   │   ├── restaurants.test.ts
+│   │   └── reviews.test.ts
+│   └── setup.ts        # 測試設定
+└── types/              # TypeScript 類型定義
 
 prisma/
 ├── schema.prisma       # 資料庫模型定義
 └── seed.ts            # 種子資料
 
 tests/                  # E2E 測試檔案
-examples/              # 元件範例（不直接使用）
+.env.example           # 環境變數範例
 ```
+
+## API 端點
+
+### 餐廳 API
+- `GET /api/restaurants` - 取得餐廳清單（支援搜尋、分頁）
+- `POST /api/restaurants` - 建立新餐廳
+- `GET /api/restaurants/[id]` - 取得特定餐廳詳細資料
+- `PUT /api/restaurants/[id]` - 更新餐廳資訊
+- `DELETE /api/restaurants/[id]` - 刪除餐廳
+
+### 評價 API
+- `GET /api/reviews` - 取得評價清單
+- `POST /api/reviews` - 建立新評價
+- `GET /api/reviews/[id]` - 取得特定評價
+- `PUT /api/reviews/[id]` - 更新評價
+- `DELETE /api/reviews/[id]` - 刪除評價
+- `GET /api/reviews/[id]/instagram` - 生成 Instagram 匯出內容
+
+### Google Places API
+- `GET /api/places/search` - 搜尋拉麵店
+- `GET /api/places/details` - 取得餐廳詳細資訊
+
+### 照片上傳 API
+- `POST /api/upload` - 上傳照片（自動轉換為 WebP）
+- `GET /api/upload` - 取得上傳配置資訊
 
 ### 常見問題
 
