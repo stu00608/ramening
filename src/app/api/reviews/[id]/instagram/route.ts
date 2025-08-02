@@ -40,7 +40,9 @@ export async function GET(
 
     try {
       // 生成 Instagram 貼文內容
-      const instagramContent = generateInstagramPost(review as InstagramReviewData);
+      const instagramContent = generateInstagramPost(
+        review as InstagramReviewData
+      );
 
       // 生成統計資訊
       const stats = generateExportStats(review as InstagramReviewData);
@@ -114,7 +116,9 @@ export async function POST(
 
     try {
       // 生成基礎 Instagram 內容
-      let instagramContent = generateInstagramPost(review as InstagramReviewData);
+      let instagramContent = generateInstagramPost(
+        review as InstagramReviewData
+      );
 
       // 根據設定調整內容
       if (!includeEmojis) {

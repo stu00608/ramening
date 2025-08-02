@@ -197,9 +197,9 @@ describe("餐廳 API 測試", () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.restaurants.some((r: any) => r.name.includes("東京"))).toBe(
-        true
-      );
+      expect(
+        data.restaurants.some((r: { name: string }) => r.name.includes("東京"))
+      ).toBe(true);
     });
 
     it("應該能夠依都道府縣篩選", async () => {
@@ -211,7 +211,9 @@ describe("餐廳 API 測試", () => {
 
       expect(response.status).toBe(200);
       expect(
-        data.restaurants.every((r: any) => r.prefecture === "大阪府")
+        data.restaurants.every(
+          (r: { prefecture: string }) => r.prefecture === "大阪府"
+        )
       ).toBe(true);
     });
 
@@ -230,7 +232,7 @@ describe("餐廳 API 測試", () => {
   });
 
   describe("GET /api/restaurants/[id]", () => {
-    let testRestaurant: any;
+    let testRestaurant: { id: string; name: string };
 
     beforeEach(async () => {
       testRestaurant = await prisma.restaurant.create({
@@ -272,7 +274,7 @@ describe("餐廳 API 測試", () => {
   });
 
   describe("PUT /api/restaurants/[id]", () => {
-    let testRestaurant: any;
+    let testRestaurant: { id: string; name: string };
 
     beforeEach(async () => {
       testRestaurant = await prisma.restaurant.create({
@@ -315,7 +317,7 @@ describe("餐廳 API 測試", () => {
   });
 
   describe("DELETE /api/restaurants/[id]", () => {
-    let testRestaurant: any;
+    let testRestaurant: { id: string; name: string };
 
     beforeEach(async () => {
       testRestaurant = await prisma.restaurant.create({

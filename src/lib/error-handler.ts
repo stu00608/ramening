@@ -21,13 +21,13 @@ export enum ErrorType {
 export class AppError extends Error {
   public readonly type: ErrorType;
   public readonly statusCode: number;
-  public readonly details?: any;
+  public readonly details?: unknown;
 
   constructor(
     type: ErrorType,
     message: string,
     statusCode: number,
-    details?: any
+    details?: unknown
   ) {
     super(message);
     this.type = type;
@@ -46,10 +46,10 @@ export const Errors = {
       404
     ),
 
-  conflict: (message: string, details?: any) =>
+  conflict: (message: string, details?: unknown) =>
     new AppError(ErrorType.CONFLICT, message, 409, details),
 
-  validation: (message: string, details?: any) =>
+  validation: (message: string, details?: unknown) =>
     new AppError(ErrorType.VALIDATION_ERROR, message, 400, details),
 
   unauthorized: (message = "需要身份驗證") =>
@@ -68,7 +68,7 @@ export const Errors = {
       502
     ),
 
-  database: (operation: string, details?: any) =>
+  database: (operation: string, details?: unknown) =>
     new AppError(
       ErrorType.DATABASE_ERROR,
       `資料庫${operation}失敗`,
@@ -76,10 +76,10 @@ export const Errors = {
       details
     ),
 
-  fileUpload: (message: string, details?: any) =>
+  fileUpload: (message: string, details?: unknown) =>
     new AppError(ErrorType.FILE_UPLOAD_ERROR, message, 400, details),
 
-  internal: (message = "內部伺服器錯誤", details?: any) =>
+  internal: (message = "內部伺服器錯誤", details?: unknown) =>
     new AppError(ErrorType.INTERNAL_SERVER_ERROR, message, 500, details),
 };
 
@@ -154,7 +154,7 @@ function handlePrismaError(
   error: Prisma.PrismaClientKnownRequestError
 ): NextResponse {
   switch (error.code) {
-    case "P2002":
+    case "P2002": {
       // 唯一性約束違反
       const target = error.meta?.target as string[];
       const field = target?.[0] || "欄位";
@@ -166,6 +166,7 @@ function handlePrismaError(
         },
         { status: 409 }
       );
+    }
 
     case "P2025":
       // 記錄不存在
@@ -214,9 +215,9 @@ function handlePrismaError(
 
 // 異步錯誤包裝器
 export function asyncHandler(
-  handler: (request: Request, context?: any) => Promise<NextResponse>
+  handler: (request: Request, context?: unknown) => Promise<NextResponse>
 ) {
-  return async (request: Request, context?: any): Promise<NextResponse> => {
+  return async (request: Request, context?: unknown): Promise<NextResponse> => {
     try {
       return await handler(request, context);
     } catch (error) {
@@ -226,7 +227,7 @@ export function asyncHandler(
 }
 
 // 日誌記錄器
-export function logError(error: unknown, context?: Record<string, any>) {
+export function logError(error: unknown, context?: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
   const errorInfo = {
     timestamp,

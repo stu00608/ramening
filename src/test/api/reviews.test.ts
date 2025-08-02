@@ -34,7 +34,7 @@ function createRequest(url: string, options: RequestInit = {}) {
 }
 
 describe("評價 API 測試", () => {
-  let testRestaurant: any;
+  let testRestaurant: { id: string; name: string };
 
   beforeEach(async () => {
     await cleanupTestData();
@@ -247,7 +247,9 @@ describe("評價 API 測試", () => {
 
       expect(response.status).toBe(200);
       expect(
-        data.reviews.every((r: any) => r.restaurantId === testRestaurant.id)
+        data.reviews.every(
+          (r: { restaurantId: string }) => r.restaurantId === testRestaurant.id
+        )
       ).toBe(true);
     });
 
@@ -264,7 +266,7 @@ describe("評價 API 測試", () => {
   });
 
   describe("GET /api/reviews/[id]", () => {
-    let testReview: any;
+    let testReview: { id: string };
 
     beforeEach(async () => {
       testReview = await prisma.review.create({
@@ -316,7 +318,7 @@ describe("評價 API 測試", () => {
   });
 
   describe("PUT /api/reviews/[id]", () => {
-    let testReview: any;
+    let testReview: { id: string };
 
     beforeEach(async () => {
       testReview = await prisma.review.create({
@@ -376,7 +378,7 @@ describe("評價 API 測試", () => {
   });
 
   describe("DELETE /api/reviews/[id]", () => {
-    let testReview: any;
+    let testReview: { id: string };
 
     beforeEach(async () => {
       testReview = await prisma.review.create({

@@ -102,7 +102,11 @@ export async function GET(request: NextRequest) {
     }
 
     // 驗證輸入參數
-    const validationData: { query: string; location?: { lat: number; lng: number }; radius?: number } = { query };
+    const validationData: {
+      query: string;
+      location?: { lat: number; lng: number };
+      radius?: number;
+    } = { query };
     if (lat && lng) {
       validationData.location = {
         lat: Number.parseFloat(lat),

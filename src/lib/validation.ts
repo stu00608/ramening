@@ -248,7 +248,7 @@ export function validatePhotoCategories(categories: string[]): boolean {
 export function formatValidationError(error: z.ZodError) {
   return {
     message: "資料驗證失敗",
-    errors: error.errors.map((err) => ({
+    errors: error.errors.map((err: z.ZodIssue) => ({
       field: err.path.join("."),
       message: err.message,
       code: err.code,

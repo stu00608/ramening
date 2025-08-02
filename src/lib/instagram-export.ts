@@ -210,7 +210,9 @@ ${baseHashtags.join(" ")}`;
 }
 
 // 驗證評價資料完整性
-export function validateReviewForExport(reviewData: any): string[] {
+export function validateReviewForExport(
+  reviewData: Partial<InstagramReviewData>
+): string[] {
   const errors: string[] = [];
 
   if (!reviewData.restaurant) {
