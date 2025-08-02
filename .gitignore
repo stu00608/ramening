@@ -62,3 +62,10 @@ logs
 
 # Docker
 .docker/
+
+# Claude Documentation
+CLAUDE.local.md
+CLAUDE.md
+NOTE.md
+INITIAL.md
+
