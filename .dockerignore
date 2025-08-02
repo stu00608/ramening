@@ -1,0 +1,16 @@
+node_modules
+.next
+.env*
+.git
+.gitignore
+README.md
+Dockerfile*
+docker-compose*
+coverage
+.nyc_output
+dist
+build
+*.log
+.DS_Store
+.vscode
+.idea
