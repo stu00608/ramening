@@ -1,9 +1,9 @@
-import type { RamenCategory, PhotoCategory } from "@prisma/client";
+import type { PhotoCategory, RamenCategory } from "@prisma/client";
 
 // 拉麵分類映射
 export const RAMEN_CATEGORIES = {
   SHOYU: "醬油拉麵",
-  SHIO: "鹽味拉麵", 
+  SHIO: "鹽味拉麵",
   MISO: "味噌拉麵",
   TONKOTSU: "豚骨拉麵",
   CHICKEN: "雞白湯拉麵",
@@ -23,7 +23,7 @@ export const PHOTO_CATEGORIES = {
   RAMEN: "拉麵",
   SIDE: "副餐",
   EXTERIOR: "店面外觀",
-  INTERIOR: "店內環境", 
+  INTERIOR: "店內環境",
   MENU: "菜單",
   OTHER: "其他",
 } as const;
@@ -54,11 +54,11 @@ export interface ReviewFormData {
   partySize: number;
   hasReservation: boolean;
   waitTime?: number;
-  
+
   // 點餐細節
   orderMethod: string;
   paymentMethod: string;
-  
+
   // 拉麵品項
   ramenItems: Array<{
     name: string;
@@ -66,19 +66,19 @@ export interface ReviewFormData {
     category: RamenCategory;
     customization?: string;
   }>;
-  
+
   // 副餐
   sideItems: Array<{
     name: string;
     price: number;
   }>;
-  
+
   // 標籤
   tags: string[];
-  
+
   // 文字評價
   textReview: string;
-  
+
   // 照片
   photos: Array<{
     file: File;
