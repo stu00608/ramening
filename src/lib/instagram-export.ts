@@ -170,7 +170,7 @@ export function generateInstagramPost(reviewData: InstagramReviewData): string {
   const visitTime = reviewData.visitTime;
   const partyAndQueue = formatPartyAndQueue(
     reviewData.partySize,
-    reviewData.hasReservation ? "事前預約" : "無需排隊",
+    reviewData.reservationStatus,
     reviewData.waitTime || undefined
   );
 

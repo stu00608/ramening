@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
           visitDate: new Date(validatedData.visitDate),
           visitTime: validatedData.visitTime,
           partySize: validatedData.partySize,
-          hasReservation: validatedData.reservationStatus !== "無需排隊",
+          reservationStatus: validatedData.reservationStatus,
           waitTime: validatedData.waitTime,
           orderMethod: validatedData.orderMethod,
           paymentMethod: validatedData.paymentMethods.join(", "),

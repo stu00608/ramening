@@ -39,7 +39,7 @@ model Review {
   visitDate     DateTime // 造訪日期
   visitTime     String   // 造訪時間
   partySize     Int      // 用餐人數
-  hasReservation Boolean // 預約狀態
+  reservationStatus String // 預約狀態：無需排隊、排隊等候、事前預約、記名制
   waitTime      Int?     // 等待時間（分鐘）
   
   // 點餐細節

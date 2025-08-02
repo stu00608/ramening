@@ -117,8 +117,7 @@ export async function PUT(
 
     // 驗證預約狀態和等待時間的邏輯
     const reservationStatus =
-      validatedData.reservationStatus ||
-      (existingReview.hasReservation ? "事前預約" : "無需排隊");
+      validatedData.reservationStatus || existingReview.reservationStatus;
     if (
       reservationStatus === "排隊等候" &&
       !validatedData.waitTime &&
@@ -141,8 +140,7 @@ export async function PUT(
       if (validatedData.partySize)
         updateData.partySize = validatedData.partySize;
       if (validatedData.reservationStatus)
-        updateData.hasReservation =
-          validatedData.reservationStatus !== "無需排隊";
+        updateData.reservationStatus = validatedData.reservationStatus;
       if (validatedData.waitTime !== undefined)
         updateData.waitTime = validatedData.waitTime;
       if (validatedData.orderMethod)

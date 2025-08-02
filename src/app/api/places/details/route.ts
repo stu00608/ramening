@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { parseJapaneseAddress } from "@/lib/utils";
 
 // Google Place Details API 參數驗證 schema
 const PlaceDetailsSchema = z.object({
@@ -50,48 +51,6 @@ interface GooglePlaceDetailsResponse {
   error_message?: string;
 }
 
-// 日本地址解析函數 (與搜尋 API 相同)
-function parseJapaneseAddress(address: string) {
-  const cleanAddress = address.replace(/^日本、/, "").replace(/^Japan,\s*/, "");
-
-  const prefectureRegex =
-    /(北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県)/;
-  const prefectureMatch = cleanAddress.match(prefectureRegex);
-  const prefecture = prefectureMatch ? prefectureMatch[1] : "";
-
-  const postalCodeRegex = /〒(\d{7}|\d{3}-\d{4})/;
-  const postalCodeMatch = cleanAddress.match(postalCodeRegex);
-  let postalCode = "";
-  if (postalCodeMatch) {
-    postalCode = postalCodeMatch[1].replace("-", "");
-  }
-
-  let city = "";
-  if (prefecture) {
-    const afterPrefecture = cleanAddress.split(prefecture)[1];
-    if (afterPrefecture) {
-      const cityRegex = /^([^0-9]+?[市区町村])/;
-      const cityMatch = afterPrefecture.match(cityRegex);
-      if (cityMatch) {
-        city = cityMatch[1];
-      }
-    }
-  }
-
-  let standardizedAddress = cleanAddress;
-  if (postalCodeMatch) {
-    standardizedAddress = standardizedAddress
-      .replace(postalCodeRegex, "")
-      .trim();
-  }
-
-  return {
-    prefecture,
-    city,
-    postalCode,
-    address: standardizedAddress,
-  };
-}
 
 // GET /api/places/details - 取得特定場所的詳細資訊
 export async function GET(request: NextRequest) {
@@ -183,7 +142,7 @@ export async function GET(request: NextRequest) {
       prefecture: addressInfo.prefecture,
       city: addressInfo.city,
       postalCode: addressInfo.postalCode,
-      address: addressInfo.address,
+      address: addressInfo.standardizedAddress,
       fullAddress: place.formatted_address,
       phone: place.formatted_phone_number,
       website: place.website,

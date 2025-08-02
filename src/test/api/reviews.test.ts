@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { RamenCategory } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createRequest } from "../helpers";
 
 // 測試資料清理
 async function cleanupTestData() {
@@ -25,13 +26,6 @@ async function cleanupTestData() {
   });
 }
 
-// 建立測試請求
-function createRequest(url: string, options: RequestInit = {}) {
-  return new NextRequest(url, {
-    method: "GET",
-    ...options,
-  });
-}
 
 describe("評價 API 測試", () => {
   let testRestaurant: { id: string; name: string };
@@ -210,7 +204,7 @@ describe("評價 API 測試", () => {
           visitDate: new Date("2024-01-15"),
           visitTime: "12:30",
           partySize: 2,
-          hasReservation: false,
+          reservationStatus: "無需排隊",
           orderMethod: "食券機",
           paymentMethod: "現金",
           textReview: "測試評價內容",
@@ -275,7 +269,7 @@ describe("評價 API 測試", () => {
           visitDate: new Date("2024-01-15"),
           visitTime: "12:30",
           partySize: 2,
-          hasReservation: false,
+          reservationStatus: "無需排隊",
           orderMethod: "食券機",
           paymentMethod: "現金",
           textReview: "測試評價內容",
@@ -327,7 +321,7 @@ describe("評價 API 測試", () => {
           visitDate: new Date("2024-01-15"),
           visitTime: "12:30",
           partySize: 2,
-          hasReservation: false,
+          reservationStatus: "無需排隊",
           orderMethod: "食券機",
           paymentMethod: "現金",
           textReview: "原始評價內容",
@@ -387,7 +381,7 @@ describe("評價 API 測試", () => {
           visitDate: new Date("2024-01-15"),
           visitTime: "12:30",
           partySize: 2,
-          hasReservation: false,
+          reservationStatus: "無需排隊",
           orderMethod: "食券機",
           paymentMethod: "現金",
           textReview: "待刪除評價內容",
