@@ -1,6 +1,6 @@
 "use client";
 
-import { Instagram, Plus, Search, Settings, Star } from "lucide-react";
+import { Plus, Search, Settings, Star } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -33,11 +33,6 @@ const menuItems = [
     title: "評價管理",
     url: "/reviews",
     icon: Star,
-  },
-  {
-    title: "Instagram 匯出",
-    url: "/export",
-    icon: Instagram,
   },
   {
     title: "設定",

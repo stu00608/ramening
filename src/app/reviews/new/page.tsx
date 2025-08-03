@@ -23,7 +23,7 @@ import { TimePicker } from "@/components/ui/time-picker";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, Minus, Plus, Upload, X } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 // 拉麵分類選項
 const ramenCategories = [
@@ -94,6 +94,7 @@ interface PhotoUpload {
 }
 
 export default function NewReviewPage() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [visitDate, setVisitDate] = useState<Date>();
   const [visitTime, setVisitTime] = useState("");
   const [guestCount, setGuestCount] = useState("");
@@ -153,15 +154,50 @@ export default function NewReviewPage() {
     setSideItems(updated);
   };
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const validFiles: { file: File; category: string }[] = [];
+    
+    for (const file of fileArray) {
+      if (file.size <= 5 * 1024 * 1024 && photos.length + validFiles.length < 10) {
+        // 5MB 限制，最多10張照片
+        validFiles.push({ file, category: "拉麵" });
+      }
+    }
+    
+    if (validFiles.length > 0) {
+      setPhotos((prev) => [...prev, ...validFiles]);
+    }
+  };
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
+    handlePhotoUpload(files);
+  };
 
-    for (const file of Array.from(files)) {
-      if (file.size <= 5 * 1024 * 1024) {
-        // 5MB 限制
-        setPhotos((prev) => [...prev, { file, category: "拉麵" }]);
-      }
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const files = event.dataTransfer.files;
+    if (files) {
+      handlePhotoUpload(files);
     }
   };
 
@@ -219,35 +255,39 @@ export default function NewReviewPage() {
               <div className="space-y-2">
                 <Label htmlFor="visit-date">造訪日期時間</Label>
                 <div className="flex gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "flex-1 justify-start text-left font-normal",
-                          !visitDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {visitDate
-                          ? format(visitDate, "yyyy年M月d日")
-                          : "選擇日期"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={visitDate}
-                        onSelect={setVisitDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <TimePicker
-                    value={visitTime}
-                    onChange={setVisitTime}
-                    placeholder="選擇時間"
-                  />
+                  <div className="flex-1">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !visitDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {visitDate
+                            ? format(visitDate, "yyyy年M月d日")
+                            : "選擇日期"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={visitDate}
+                          onSelect={setVisitDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex-1">
+                    <TimePicker
+                      value={visitTime}
+                      onChange={setVisitTime}
+                      placeholder="選擇時間"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -363,19 +403,7 @@ export default function NewReviewPage() {
                 key={`ramen-${index}-${item.name}`}
                 className="border rounded-lg p-4 space-y-4"
               >
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">品項 {index + 1}</h4>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeRamenItem(index)}
-                    disabled={ramenItems.length === 1}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                   <div className="space-y-2">
                     <Label>品項名稱</Label>
                     <Input
@@ -423,6 +451,17 @@ export default function NewReviewPage() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeRamenItem(index)}
+                      disabled={ramenItems.length === 1}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -461,18 +500,7 @@ export default function NewReviewPage() {
                 key={`side-${index}-${item.name}`}
                 className="border rounded-lg p-4"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">副餐 {index + 1}</h4>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeSideItem(index)}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                   <div className="space-y-2">
                     <Label>品項名稱</Label>
                     <Input
@@ -499,6 +527,16 @@ export default function NewReviewPage() {
                       placeholder="0"
                     />
                   </div>
+
+                  <div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeSideItem(index)}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -515,79 +553,108 @@ export default function NewReviewPage() {
         {/* 照片上傳 */}
         <Card>
           <CardHeader>
-            <CardTitle>照片上傳</CardTitle>
+            <CardTitle>照片上傳 ({photos.length}/10)</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <div className="space-y-2">
-                <p className="text-lg font-medium">上傳照片</p>
-                <p className="text-sm text-muted-foreground">
-                  支援 JPG、PNG 格式，單檔最大 5MB
-                </p>
-                <Input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="max-w-xs mx-auto"
-                />
-              </div>
-            </div>
+          <CardContent
+            className="space-y-6"
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
 
-            {photos.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {photos.map((photo, index) => (
-                  <div
-                    key={`photo-${index}-${photo.file.name}`}
-                    className="border rounded-lg p-4 space-y-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium truncate">
-                        {photo.file.name}
-                      </h4>
+            {photos.length === 0 ? (
+              <div
+                className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <div className="space-y-2">
+                  <p className="text-lg font-medium">上傳照片</p>
+                  <p className="text-sm text-muted-foreground">
+                    點擊或拖拽照片到此區域
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    支援 JPG、PNG 格式，單檔最大 5MB，最多 10 張
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 overflow-x-auto pb-4">
+                  {photos.map((photo, index) => (
+                    <div
+                      key={`photo-${index}-${photo.file.name}`}
+                      className="flex-shrink-0 w-48 border rounded-lg p-3 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium truncate text-sm">
+                          {photo.file.name}
+                        </h4>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removePhoto(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>照片分類</Label>
+                        <Select
+                          value={photo.category}
+                          onValueChange={(value) =>
+                            updatePhotoCategory(index, value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {photoCategories.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>照片說明（選填）</Label>
+                        <Input
+                          value={photo.description || ""}
+                          onChange={(e) =>
+                            updatePhotoDescription(index, e.target.value)
+                          }
+                          placeholder="簡單描述照片內容..."
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {photos.length < 10 && (
+                    <div className="flex-shrink-0">
                       <Button
                         variant="outline"
-                        size="sm"
-                        onClick={() => removePhoto(index)}
+                        size="lg"
+                        className="w-12 h-12 rounded-full p-0"
+                        onClick={() => fileInputRef.current?.click()}
                       >
-                        <X className="h-4 w-4" />
+                        <Plus className="h-6 w-6" />
                       </Button>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label>照片分類</Label>
-                      <Select
-                        value={photo.category}
-                        onValueChange={(value) =>
-                          updatePhotoCategory(index, value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {photoCategories.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>照片說明（選填）</Label>
-                      <Input
-                        value={photo.description || ""}
-                        onChange={(e) =>
-                          updatePhotoDescription(index, e.target.value)
-                        }
-                        placeholder="簡單描述照片內容..."
-                      />
-                    </div>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
             )}
           </CardContent>

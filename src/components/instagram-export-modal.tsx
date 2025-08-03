@@ -119,10 +119,6 @@ ${reviewData.sideItems.length > 0 ? `配菜🍥：${reviewData.sideItems.map((it
     return post;
   }, []);
 
-  const handleGenerate = () => {
-    const post = generateInstagramPost(review);
-    setGeneratedPost(post);
-  };
 
   const handleCopyToClipboard = async () => {
     if (generatedPost) {
@@ -222,13 +218,6 @@ ${reviewData.sideItems.length > 0 ? `配菜🍥：${reviewData.sideItems.map((it
 
           {/* 操作按鈕 */}
           <div className="flex gap-3">
-            <Button
-              onClick={handleGenerate}
-              variant="outline"
-              className="flex-1"
-            >
-              重新生成
-            </Button>
             <Button
               onClick={handleCopyToClipboard}
               disabled={!generatedPost}
