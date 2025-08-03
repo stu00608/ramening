@@ -1,0 +1,78 @@
+name: 🐛 Bug 回報
+description: 回報 Bug 或問題
+title: "[Bug] "
+labels: ["bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感謝您協助改善 Ramening！請詳細描述您遇到的問題。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 問題描述
+      description: 請詳細描述您遇到的問題
+      placeholder: 發生了什麼問題？
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 重現步驟
+      description: 請提供重現這個問題的步驟
+      placeholder: |
+        1. 前往 '...'
+        2. 點擊 '...'
+        3. 滾動到 '...'
+        4. 看到錯誤
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 預期行為
+      description: 描述您預期應該發生什麼
+      placeholder: 應該要...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 實際行為
+      description: 描述實際發生了什麼
+      placeholder: 但是實際上...
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 螢幕截圖
+      description: 如果可能的話，請新增螢幕截圖來幫助解釋您的問題
+      placeholder: 拖放圖片到這裡
+
+  - type: input
+    id: browser
+    attributes:
+      label: 瀏覽器
+      description: 您使用的瀏覽器和版本
+      placeholder: Chrome 119, Safari 17, Firefox 120
+
+  - type: input
+    id: os
+    attributes:
+      label: 作業系統
+      description: 您的作業系統
+      placeholder: macOS 14, Windows 11, Ubuntu 22.04
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 其他資訊
+      description: 任何其他有助於我們解決問題的資訊
