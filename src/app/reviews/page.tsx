@@ -366,10 +366,10 @@ export default function ReviewsPage() {
                     )}
 
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold mb-2">
+                      <h3 className="text-lg font-semibold mb-1">
                         {review.restaurantName}
                       </h3>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-1">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
                           <span>{review.address}</span>
@@ -380,7 +380,7 @@ export default function ReviewsPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-1">
                         <div className="flex items-center gap-1">
                           {renderStars(review.rating)}
                           <span className="text-sm font-medium ml-1">
@@ -389,27 +389,26 @@ export default function ReviewsPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {review.ramenItems.map((item) => (
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {review.ramenItems.slice(0, 2).map((item) => (
                           <Badge
                             key={`ramen-${item.name}-${item.price}`}
                             variant="secondary"
+                            className="text-xs"
                           >
                             {item.name}
                           </Badge>
                         ))}
-                        {review.sideItems.map((item) => (
+                        {review.sideItems.slice(0, 1).map((item) => (
                           <Badge
                             key={`side-${item.name}-${item.price}`}
                             variant="outline"
+                            className="text-xs"
                           >
                             {item.name}
                           </Badge>
                         ))}
-                      </div>
-
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {review.tags.map((tag) => (
+                        {review.tags.slice(0, 2).map((tag) => (
                           <Badge
                             key={`tag-${tag}`}
                             variant="outline"
