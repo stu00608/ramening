@@ -1,0 +1,78 @@
+name: ✨ 新功能提案
+description: 提出新功能或改進建議
+title: "[功能] "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感謝您為 Ramening 提出新功能建議！請詳細描述您的想法。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 問題或需求描述
+      description: 這個功能要解決什麼問題？或者您希望看到什麼改進？
+      placeholder: 我希望能夠...，因為...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 建議的解決方案
+      description: 您認為應該如何實現這個功能？
+      placeholder: 我認為可以透過...來實現
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: 功能類型
+      description: 這個功能屬於哪個類別？
+      options:
+        - 拉麵店搜尋
+        - 評價建立
+        - 評價管理
+        - Instagram 匯出
+        - 使用者介面改進
+        - 效能最佳化
+        - 其他
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先級
+      description: 您認為這個功能的重要性如何？
+      options:
+        - 低 - 有了會更好
+        - 中 - 重要但不緊急
+        - 高 - 非常重要
+        - 緊急 - 阻礙使用
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案
+      description: 您考慮過其他解決方案嗎？
+      placeholder: 我也考慮過...
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: 模擬圖或範例
+      description: 如果有的話，請提供模擬圖、線框圖或其他視覺化資料
+      placeholder: 拖放圖片到這裡
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 其他資訊
+      description: 任何其他相關資訊或想法

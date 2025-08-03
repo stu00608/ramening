@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { vi } from "vitest";
 
 // 全域測試設定
 Object.defineProperty(window, "matchMedia", {
