@@ -26,7 +26,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Calendar,
   Edit,
-  Eye,
   Instagram,
   MapPin,
   Search,
@@ -409,7 +408,7 @@ export default function ReviewsPage() {
                         ))}
                       </div>
 
-                      <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="flex flex-wrap gap-2 mb-2">
                         {review.tags.map((tag) => (
                           <Badge
                             key={`tag-${tag}`}
@@ -426,13 +425,7 @@ export default function ReviewsPage() {
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                      <Button size="sm" variant="outline" asChild>
-                        <Link href={`/reviews/${review.id}`}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          查看
-                        </Link>
-                      </Button>
+                    <div className="flex flex-col gap-2 justify-start">
                       <Button size="sm" variant="outline" asChild>
                         <Link href={`/reviews/${review.id}/edit`}>
                           <Edit className="h-4 w-4 mr-2" />
