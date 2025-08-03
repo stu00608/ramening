@@ -356,7 +356,7 @@ export default function ReviewsPage() {
                   <div className="flex gap-4">
                     {/* 拉麵照片預覽 */}
                     {getRamenPhoto(review) && (
-                      <div className="flex-shrink-0 w-24 h-24">
+                      <div className="flex-shrink-0 w-32 h-32">
                         <img
                           src={getRamenPhoto(review)!.url}
                           alt={getRamenPhoto(review)!.description || "拉麵照片"}
