@@ -200,7 +200,7 @@ ${review.sideItems.length > 0 ? `配菜🍥：${review.sideItems.map((item) => `
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
-        key={i}
+        key={`star-${rating}-${i}`}
         className={`h-4 w-4 ${
           i < Math.floor(rating)
             ? "fill-yellow-400 text-yellow-400"
@@ -280,22 +280,28 @@ ${review.sideItems.length > 0 ? `配菜🍥：${review.sideItems.map((item) => `
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {selectedReview.ramenItems.map((item, index) => (
-                        <Badge key={index} variant="secondary">
+                      {selectedReview.ramenItems.map((item) => (
+                        <Badge
+                          key={`ramen-${item.name}-${item.price}`}
+                          variant="secondary"
+                        >
                           {item.name} ¥{item.price}
                         </Badge>
                       ))}
-                      {selectedReview.sideItems.map((item, index) => (
-                        <Badge key={index} variant="outline">
+                      {selectedReview.sideItems.map((item) => (
+                        <Badge
+                          key={`side-${item.name}-${item.price}`}
+                          variant="outline"
+                        >
                           {item.name} ¥{item.price}
                         </Badge>
                       ))}
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {selectedReview.tags.map((tag, index) => (
+                      {selectedReview.tags.map((tag) => (
                         <Badge
-                          key={index}
+                          key={`tag-${tag}`}
                           variant="outline"
                           className="text-xs"
                         >

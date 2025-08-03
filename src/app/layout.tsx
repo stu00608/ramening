@@ -3,6 +3,7 @@ import "./globals.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "Ramening - 日本拉麵評價紀錄工具",
@@ -22,6 +23,7 @@ export default function RootLayout({
             <AppSidebar />
             <main className="flex-1 overflow-auto">{children}</main>
           </SidebarProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

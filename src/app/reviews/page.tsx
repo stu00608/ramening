@@ -1,6 +1,16 @@
 "use client";
 
 import { InstagramExportModal } from "@/components/instagram-export-modal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,6 +132,8 @@ export default function ReviewsPage() {
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [selectedReviewForExport, setSelectedReviewForExport] =
     useState<Review | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
   const filteredAndSortedReviews = reviews
     .filter((review) => {
@@ -168,8 +180,15 @@ export default function ReviewsPage() {
     });
 
   const handleDelete = (reviewId: string) => {
-    if (confirm("確定要刪除這則評價嗎？此操作無法復原。")) {
-      setReviews(reviews.filter((review) => review.id !== reviewId));
+    setReviewToDelete(reviewId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (reviewToDelete) {
+      setReviews(reviews.filter((review) => review.id !== reviewToDelete));
+      setDeleteDialogOpen(false);
+      setReviewToDelete(null);
     }
   };
 
@@ -181,7 +200,7 @@ export default function ReviewsPage() {
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
-        key={`star-${i}`}
+        key={`star-${rating}-${i}`}
         className={`h-4 w-4 ${
           i < Math.floor(rating)
             ? "fill-yellow-400 text-yellow-400"
@@ -451,6 +470,27 @@ export default function ReviewsPage() {
           review={selectedReviewForExport}
         />
       )}
+
+      {/* 刪除確認對話框 */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除評價</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作無法復原。確定要刪除這則評價嗎？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              確定刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

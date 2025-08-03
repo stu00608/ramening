@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import { Copy, Download } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -47,6 +48,7 @@ export function InstagramExportModal({
   review,
 }: InstagramExportModalProps) {
   const [generatedPost, setGeneratedPost] = useState("");
+  const { toast } = useToast();
 
   const generateInstagramPost = useCallback((reviewData: Review) => {
     const formatReservationStatus = (status?: string, waitTime?: string) => {
@@ -126,10 +128,17 @@ ${reviewData.sideItems.length > 0 ? `配菜🍥：${reviewData.sideItems.map((it
     if (generatedPost) {
       try {
         await navigator.clipboard.writeText(generatedPost);
-        alert("已複製到剪貼板！");
+        toast({
+          title: "已複製到剪貼板！",
+          description: "Instagram 貼文內容已複製到剪貼板",
+        });
       } catch (err) {
         console.error("複製失敗:", err);
-        alert("複製失敗，請手動複製文字");
+        toast({
+          title: "複製失敗",
+          description: "無法複製到剪貼板，請手動複製文字",
+          variant: "destructive",
+        });
       }
     }
   };

@@ -157,12 +157,12 @@ export default function NewReviewPage() {
     const files = event.target.files;
     if (!files) return;
 
-    Array.from(files).forEach((file) => {
+    for (const file of Array.from(files)) {
       if (file.size <= 5 * 1024 * 1024) {
         // 5MB 限制
         setPhotos((prev) => [...prev, { file, category: "拉麵" }]);
       }
-    });
+    }
   };
 
   const removePhoto = (index: number) => {
@@ -359,7 +359,10 @@ export default function NewReviewPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {ramenItems.map((item, index) => (
-              <div key={index} className="border rounded-lg p-4 space-y-4">
+              <div
+                key={`ramen-${index}-${item.name}`}
+                className="border rounded-lg p-4 space-y-4"
+              >
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">品項 {index + 1}</h4>
                   <Button
@@ -454,7 +457,10 @@ export default function NewReviewPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {sideItems.map((item, index) => (
-              <div key={index} className="border rounded-lg p-4">
+              <div
+                key={`side-${index}-${item.name}`}
+                className="border rounded-lg p-4"
+              >
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-medium">副餐 {index + 1}</h4>
                   <Button
@@ -532,7 +538,10 @@ export default function NewReviewPage() {
             {photos.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {photos.map((photo, index) => (
-                  <div key={index} className="border rounded-lg p-4 space-y-4">
+                  <div
+                    key={`photo-${index}-${photo.file.name}`}
+                    className="border rounded-lg p-4 space-y-4"
+                  >
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium truncate">
                         {photo.file.name}
