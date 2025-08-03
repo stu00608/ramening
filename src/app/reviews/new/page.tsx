@@ -24,7 +24,8 @@ import { TimePicker } from "@/components/ui/time-picker";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, Minus, Plus, Upload, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 // 拉麵分類選項
 const ramenCategories = [
@@ -62,19 +63,7 @@ const photoCategories = [
   "其他",
 ];
 
-// 推薦標籤（模擬從之前評價中獲取）
-const recommendedTags: Option[] = [
-  { value: "rich-broth", label: "濃厚湯頭" },
-  { value: "thin-noodles", label: "細麵" },
-  { value: "thick-noodles", label: "粗麵" },
-  { value: "soft-egg", label: "溏心蛋" },
-  { value: "char-siu", label: "叉燒" },
-  { value: "green-onion", label: "蔥花" },
-  { value: "bamboo-shoots", label: "筍乾" },
-  { value: "spicy", label: "辛辣" },
-  { value: "mild", label: "清淡" },
-  { value: "late-night", label: "深夜營業" },
-];
+// 推薦標籤現在從餐廳歷史評價中動態載入
 
 interface RamenItem {
   name: string;
@@ -95,7 +84,19 @@ interface PhotoUpload {
 }
 
 export default function NewReviewPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 餐廳資訊狀態
+  const [restaurant, setRestaurant] = useState<{
+    id: string;
+    name: string;
+    address: string;
+    prefecture: string;
+    city: string;
+  } | null>(null);
+  const [isLoadingRestaurant, setIsLoadingRestaurant] = useState(true);
   const [visitDate, setVisitDate] = useState<Date>();
   const [visitTime, setVisitTime] = useState("");
   const [guestCount, setGuestCount] = useState("");
@@ -106,6 +107,7 @@ export default function NewReviewPage() {
     Option[]
   >([]);
   const [selectedTags, setSelectedTags] = useState<Option[]>([]);
+  const [recommendedTags, setRecommendedTags] = useState<Option[]>([]);
   const [ramenItems, setRamenItems] = useState<RamenItem[]>([
     { name: "", price: 0, category: "" },
   ]);
@@ -116,6 +118,71 @@ export default function NewReviewPage() {
   // 照片裁切相關狀態
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [fileToProcess, setFileToProcess] = useState<File | null>(null);
+
+  // 檢查並載入餐廳資訊
+  useEffect(() => {
+    const restaurantId = searchParams.get("restaurantId");
+    
+    if (!restaurantId) {
+      // 沒有餐廳ID，導向搜尋頁面
+      router.push("/search");
+      return;
+    }
+
+    // 載入餐廳資訊
+    const loadRestaurant = async () => {
+      try {
+        const response = await fetch(`/api/restaurants/${restaurantId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setRestaurant(data.restaurant);
+          } else {
+            alert("找不到指定的餐廳");
+            router.push("/search");
+          }
+        } else {
+          alert("載入餐廳資訊失敗");
+          router.push("/search");
+        }
+      } catch (error) {
+        console.error("載入餐廳資訊錯誤:", error);
+        alert("載入餐廳資訊時發生錯誤");
+        router.push("/search");
+      } finally {
+        setIsLoadingRestaurant(false);
+      }
+    };
+
+    loadRestaurant();
+  }, [searchParams, router]);
+
+  // 載入該餐廳的推薦標籤
+  useEffect(() => {
+    if (restaurant?.id) {
+      const loadRecommendedTags = async () => {
+        try {
+          const response = await fetch(`/api/restaurants/${restaurant.id}/tags`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.tags) {
+              const tagOptions = data.tags.map((tag: string) => ({
+                value: tag,
+                label: tag,
+              }));
+              setRecommendedTags(tagOptions);
+            }
+          }
+        } catch (error) {
+          console.error("載入推薦標籤失敗:", error);
+          // 如果載入失敗，使用空陣列（不顯示推薦標籤）
+          setRecommendedTags([]);
+        }
+      };
+
+      loadRecommendedTags();
+    }
+  }, [restaurant?.id]);
 
   const addRamenItem = () => {
     if (ramenItems.length < 5) {
@@ -234,25 +301,125 @@ export default function NewReviewPage() {
     setFileToProcess(null);
   };
 
-  const handleSubmit = () => {
-    // 表單驗證
-    const hasValidRamenItem = ramenItems.some(
-      (item) => item.name.trim() && item.category && item.price > 0
-    );
-
-    if (!hasValidRamenItem) {
-      alert("請至少填寫一個完整的拉麵品項（品項名稱、分類和價格）");
+  const handleSubmit = async (isDraft = false) => {
+    if (!restaurant) {
+      alert("餐廳資訊遺失，請重新選擇餐廳");
       return;
     }
 
-    if (!textReview.trim()) {
-      alert("請填寫文字評價");
-      return;
+    // 表單驗證（草稿模式不需要完整驗證）
+    if (!isDraft) {
+      const hasValidRamenItem = ramenItems.some(
+        (item) => item.name.trim() && item.category && item.price > 0
+      );
+
+      if (!hasValidRamenItem) {
+        alert("請至少填寫一個完整的拉麵品項（品項名稱、分類和價格）");
+        return;
+      }
+
+      if (!textReview.trim()) {
+        alert("請填寫文字評價");
+        return;
+      }
+
+      if (!visitDate) {
+        alert("請選擇造訪日期");
+        return;
+      }
     }
 
-    // 這裡會處理表單提交
-    // TODO: 實作實際的表單提交邏輯
+    // 準備提交資料
+    const reviewData = {
+      restaurantId: restaurant.id,
+      visitDate: visitDate ? visitDate.toISOString() : null,
+      visitTime,
+      partySize: parseInt(guestCount) || 1,
+      reservationStatus,
+      waitTime: waitTime ? parseInt(waitTime) : null,
+      orderMethod,
+      paymentMethod: selectedPaymentMethods.map(m => m.label).join(", "),
+      ramenItems: ramenItems.filter(item => item.name.trim()),
+      sideItems: sideItems.filter(item => item.name.trim()),
+      tags: selectedTags.map(tag => tag.label),
+      textReview: textReview.trim(),
+      photos: photos.map(photo => ({
+        filename: photo.file.name,
+        category: photo.category,
+        description: photo.description,
+      })),
+      isDraft,
+    };
+
+    try {
+      const response = await fetch("/api/reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(reviewData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(isDraft ? "草稿已儲存" : "評價已成功建立");
+        if (!isDraft) {
+          router.push("/reviews");
+        }
+      } else {
+        alert(`${isDraft ? "儲存草稿" : "建立評價"}失敗: ${data.error}`);
+      }
+    } catch (error) {
+      console.error("提交評價錯誤:", error);
+      alert(`${isDraft ? "儲存草稿" : "建立評價"}時發生錯誤`);
+    }
   };
+
+  const handleClearForm = () => {
+    if (confirm("確定要清除所有內容嗎？此操作無法復原。")) {
+      setVisitDate(undefined);
+      setVisitTime("");
+      setGuestCount("");
+      setReservationStatus("");
+      setWaitTime("");
+      setOrderMethod("");
+      setSelectedPaymentMethods([]);
+      setSelectedTags([]);
+      setRamenItems([{ name: "", price: 0, category: "" }]);
+      setSideItems([]);
+      setPhotos([]);
+      setTextReview("");
+    }
+  };
+
+  // 載入中狀態
+  if (isLoadingRestaurant) {
+    return (
+      <div className="container mx-auto px-6 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>載入餐廳資訊中...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 沒有餐廳資訊時的狀態
+  if (!restaurant) {
+    return (
+      <div className="container mx-auto px-6 py-8">
+        <div className="text-center">
+          <p className="text-lg mb-4">無法載入餐廳資訊</p>
+          <Button onClick={() => router.push("/search")}>
+            返回搜尋頁面
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-6 py-8">
@@ -260,6 +427,24 @@ export default function NewReviewPage() {
         <h1 className="text-3xl font-bold mb-4">建立拉麵評價</h1>
         <p className="text-muted-foreground">記錄您的拉麵店造訪體驗</p>
       </div>
+
+      {/* 選定的餐廳資訊 */}
+      <Card className="mb-8 bg-muted/50">
+        <CardHeader>
+          <CardTitle className="text-lg">選定餐廳</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <h3 className="text-xl font-semibold">{restaurant.name}</h3>
+            <p className="text-sm text-muted-foreground">
+              {restaurant.address}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {restaurant.prefecture} {restaurant.city}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="space-y-8">
         {/* 造訪詳細資料 */}
@@ -417,7 +602,7 @@ export default function NewReviewPage() {
           <CardContent className="space-y-4">
             {ramenItems.map((item, index) => (
               <div
-                key={`ramen-${index}-${item.name}`}
+                key={`ramen-${index}`}
                 className="border rounded-lg p-4 space-y-4"
               >
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_120px_1fr_40px] gap-4 items-end">
@@ -515,7 +700,7 @@ export default function NewReviewPage() {
           <CardContent className="space-y-4">
             {sideItems.map((item, index) => (
               <div
-                key={`side-${index}-${item.name}`}
+                key={`side-${index}`}
                 className="border rounded-lg p-4"
               >
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_120px_40px] gap-4 items-end">
@@ -744,16 +929,27 @@ export default function NewReviewPage() {
         </Card>
 
         {/* 提交按鈕 */}
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <Button
-            onClick={handleSubmit}
+            onClick={() => handleSubmit(false)}
             className="flex-1"
             disabled={!textReview.trim()}
           >
             儲存評價
           </Button>
-          <Button variant="outline" className="flex-1">
+          <Button 
+            variant="outline" 
+            className="flex-1"
+            onClick={() => handleSubmit(true)}
+          >
             儲存草稿
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={handleClearForm}
+            className="sm:w-auto"
+          >
+            清除表單
           </Button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, MapPin, Phone, Search, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface Restaurant {
@@ -22,6 +23,7 @@ interface Restaurant {
 }
 
 export default function SearchPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,55 +35,87 @@ export default function SearchPage() {
     setIsLoading(true);
     setHasSearched(true);
 
-    // 模擬 API 搜尋延遲
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // 使用 Google Places API 搜尋
+      const response = await fetch(
+        `/api/places/search?query=${encodeURIComponent(searchTerm + " 拉麵")}&location=35.6762,139.6503`
+      );
+      
+      if (!response.ok) {
+        throw new Error("搜尋失敗");
+      }
 
-    // 模擬搜尋結果
-    const mockResults: Restaurant[] = [
-      {
-        id: "1",
-        name: "一蘭拉麵 渋谷店",
-        address: "東京都渋谷区宇田川町13-8",
-        prefecture: "東京都",
-        city: "渋谷区",
-        postalCode: "1500042",
-        rating: 4.2,
-        priceLevel: 2,
-        phoneNumber: "03-3461-1766",
-        openingHours: ["週一至週日 24小時營業"],
-      },
-      {
-        id: "2",
-        name: "麺や 七彩",
-        address: "東京都台東区浅草橋5-9-2",
-        prefecture: "東京都",
-        city: "台東区",
-        postalCode: "1110053",
-        rating: 4.5,
-        priceLevel: 2,
-        phoneNumber: "03-3851-3957",
-        openingHours: ["11:00-15:00", "18:00-21:00"],
-      },
-      {
-        id: "3",
-        name: "らーめん 大至急",
-        address: "東京都新宿区歌舞伎町1-6-2",
-        prefecture: "東京都",
-        city: "新宿区",
-        postalCode: "1600021",
-        rating: 4.1,
-        priceLevel: 1,
-        phoneNumber: "03-3205-1234",
-        openingHours: ["11:30-03:00"],
-      },
-    ];
-
-    setResults(mockResults);
-    setIsLoading(false);
+      const data = await response.json();
+      
+      if (data.success && data.places) {
+        setResults(data.places);
+      } else {
+        setResults([]);
+      }
+    } catch (error) {
+      console.error("搜尋錯誤:", error);
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatStandardAddress = (restaurant: Restaurant) => {
     return restaurant.address.replace(restaurant.postalCode, "").trim();
+  };
+
+  const handleSelectRestaurant = async (restaurant: Restaurant) => {
+    try {
+      // 先將餐廳資料儲存到資料庫
+      const response = await fetch("/api/restaurants", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: restaurant.name,
+          prefecture: restaurant.prefecture,
+          city: restaurant.city,
+          postalCode: restaurant.postalCode,
+          address: formatStandardAddress(restaurant),
+          googleId: restaurant.id,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // 導向評價建立頁面，並帶上餐廳 ID
+        router.push(`/reviews/new?restaurantId=${data.restaurant.id}`);
+      } else {
+        console.error("儲存餐廳失敗:", data.error);
+        alert("儲存餐廳資料失敗，請重試");
+      }
+    } catch (error) {
+      console.error("選擇餐廳錯誤:", error);
+      alert("選擇餐廳時發生錯誤，請重試");
+    }
+  };
+
+  const handleViewDetails = async (restaurant: Restaurant) => {
+    try {
+      // 使用 Google Places Details API 取得詳細資訊
+      const response = await fetch(
+        `/api/places/details?placeId=${restaurant.id}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("餐廳詳細資訊:", data);
+        // 這裡可以開啟一個詳細資訊的 modal 或導向詳細頁面
+        alert(`餐廳詳細資訊：\n${JSON.stringify(data.place, null, 2)}`);
+      } else {
+        alert("取得詳細資訊失敗");
+      }
+    } catch (error) {
+      console.error("查看詳情錯誤:", error);
+      alert("查看詳情時發生錯誤");
+    }
   };
 
   return (
@@ -210,8 +244,17 @@ export default function SearchPage() {
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <Button size="sm">選擇此店舖</Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleSelectRestaurant(restaurant)}
+                        >
+                          選擇此店舖
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewDetails(restaurant)}
+                        >
                           查看詳情
                         </Button>
                       </div>
