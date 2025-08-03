@@ -355,6 +355,17 @@ export default function ReviewsPage() {
               >
                 <CardContent className="p-6">
                   <div className="flex gap-4">
+                    {/* 拉麵照片預覽 */}
+                    {getRamenPhoto(review) && (
+                      <div className="flex-shrink-0 w-24 h-24">
+                        <img
+                          src={getRamenPhoto(review)!.url}
+                          alt={getRamenPhoto(review)!.description || "拉麵照片"}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold mb-2">
                         {review.restaurantName}
@@ -415,18 +426,7 @@ export default function ReviewsPage() {
                       </p>
                     </div>
 
-                    {/* 拉麵照片預覽 */}
-                    {getRamenPhoto(review) && (
-                      <div className="flex-shrink-0 w-24 h-24">
-                        <img
-                          src={getRamenPhoto(review)!.url}
-                          alt={getRamenPhoto(review)!.description || "拉麵照片"}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
-                      </div>
-                    )}
-
-                    <div className="flex flex-col gap-2 ml-4">
+                    <div className="flex flex-col gap-2">
                       <Button size="sm" variant="outline" asChild>
                         <Link href={`/reviews/${review.id}`}>
                           <Eye className="h-4 w-4 mr-2" />
