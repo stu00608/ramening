@@ -14,27 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Copy, Download } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-interface Review {
-  id: string;
-  restaurantName: string;
-  visitDate: string;
-  visitTime?: string;
-  rating: number;
-  ramenItems: Array<{ name: string; price: number; customization?: string }>;
-  sideItems: Array<{ name: string; price: number }>;
-  tags: string[];
-  address: string;
-  photos: Array<{ url: string; category: string; description?: string }>;
-  textReview: string;
-  createdAt: string;
-  guestCount?: string;
-  reservationStatus?: string;
-  waitTime?: string;
-  orderMethod?: string;
-  paymentMethods?: string[];
-  nearestStation?: string;
-  walkingTime?: string;
-}
+import type { Review } from "@/types/review";
 
 interface InstagramExportModalProps {
   open: boolean;
