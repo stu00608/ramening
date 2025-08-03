@@ -92,12 +92,12 @@ export default function SearchPage() {
 
       const data = await response.json();
       
-      if (data.success && data.restaurant) {
+      if (response.ok && data.success && data.restaurant) {
         // 成功建立新餐廳，導向評價建立頁面
         router.push(`/reviews/new?restaurantId=${data.restaurant.id}`);
-      } else if (data.error === "此餐廳已存在") {
+      } else if (response.status === 409 && data.error === "此餐廳已存在") {
         // 餐廳已存在，先取得餐廳ID
-        const existingResponse = await fetch(`/api/restaurants?googleId=${restaurant.googleId}`);
+        const existingResponse = await fetch(`/api/restaurants?googleId=${encodeURIComponent(restaurant.googleId)}`);
         const existingData = await existingResponse.json();
         
         if (existingData.restaurants && existingData.restaurants.length > 0) {
@@ -107,8 +107,8 @@ export default function SearchPage() {
           alert("無法找到餐廳資料，請重試");
         }
       } else {
-        console.error("處理餐廳資料失敗:", data.error);
-        alert("處理餐廳資料失敗，請重試");
+        console.error("處理餐廳資料失敗:", data.error || "未知錯誤");
+        alert(`處理餐廳資料失敗：${data.error || "未知錯誤"}，請重試`);
       }
     } catch (error) {
       console.error("選擇餐廳錯誤:", error);

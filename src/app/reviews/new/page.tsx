@@ -134,9 +134,9 @@ export default function NewReviewPage() {
       try {
         const response = await fetch(`/api/restaurants/${restaurantId}`);
         if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            setRestaurant(data.restaurant);
+          const restaurant = await response.json();
+          if (restaurant && restaurant.id) {
+            setRestaurant(restaurant);
           } else {
             alert("找不到指定的餐廳");
             router.push("/search");
