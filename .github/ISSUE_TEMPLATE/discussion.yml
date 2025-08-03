@@ -1,0 +1,75 @@
+name: 💬 討論
+description: 開始一個討論或提出問題
+title: "[討論] "
+labels: ["discussion"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        歡迎參與 Ramening 社群討論！您可以在這裡提出問題、分享想法或開始任何相關討論。
+
+  - type: dropdown
+    id: discussion-type
+    attributes:
+      label: 討論類型
+      description: 這個討論屬於哪個類別？
+      options:
+        - 💡 想法分享
+        - ❓ 問題詢問
+        - 🎯 功能建議
+        - 📖 文件相關
+        - 🔧 技術討論
+        - 🗺️ 專案規劃
+        - 🎨 設計討論
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: topic
+    attributes:
+      label: 討論主題
+      description: 請描述您想討論的主題或問題
+      placeholder: 我想討論關於...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 背景資訊
+      description: 提供相關的背景資訊或脈絡
+      placeholder: 相關背景是...
+
+  - type: textarea
+    id: thoughts
+    attributes:
+      label: 您的想法
+      description: 分享您對這個主題的想法或觀點
+      placeholder: 我認為...
+
+  - type: textarea
+    id: questions
+    attributes:
+      label: 具體問題
+      description: 如果有具體問題想要討論，請列出來
+      placeholder: |
+        1. 關於...您怎麼看？
+        2. 我們應該考慮...嗎？
+
+  - type: textarea
+    id: resources
+    attributes:
+      label: 相關資源
+      description: 分享任何相關連結、文章或資源
+      placeholder: |
+        - [相關文章標題](連結)
+        - [參考專案](連結)
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 其他資訊
+      description: 任何其他想要分享的資訊
