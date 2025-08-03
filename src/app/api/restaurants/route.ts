@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const prefecture = searchParams.get("prefecture");
     const city = searchParams.get("city");
+    const googleId = searchParams.get("googleId");
     const page = Number.parseInt(searchParams.get("page") || "1");
     const limit = Number.parseInt(searchParams.get("limit") || "10");
 
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
       }>;
       prefecture?: string;
       city?: string;
+      googleId?: string;
     } = {};
 
     if (search) {
@@ -46,6 +48,10 @@ export async function GET(request: NextRequest) {
 
     if (city) {
       where.city = city;
+    }
+
+    if (googleId) {
+      where.googleId = googleId;
     }
 
     const [restaurants, total] = await Promise.all([

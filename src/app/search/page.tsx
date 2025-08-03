@@ -35,6 +35,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
@@ -73,7 +74,7 @@ export default function SearchPage() {
 
   const handleSelectRestaurant = async (restaurant: Restaurant) => {
     try {
-      // 先將餐廳資料儲存到資料庫
+      // 先嘗試建立或取得餐廳
       const response = await fetch("/api/restaurants", {
         method: "POST",
         headers: {
@@ -91,12 +92,23 @@ export default function SearchPage() {
 
       const data = await response.json();
       
-      if (data.success) {
-        // 導向評價建立頁面，並帶上餐廳 ID
+      if (data.success && data.restaurant) {
+        // 成功建立新餐廳，導向評價建立頁面
         router.push(`/reviews/new?restaurantId=${data.restaurant.id}`);
+      } else if (data.error === "此餐廳已存在") {
+        // 餐廳已存在，先取得餐廳ID
+        const existingResponse = await fetch(`/api/restaurants?googleId=${restaurant.googleId}`);
+        const existingData = await existingResponse.json();
+        
+        if (existingData.restaurants && existingData.restaurants.length > 0) {
+          const existingRestaurant = existingData.restaurants[0];
+          router.push(`/reviews/new?restaurantId=${existingRestaurant.id}`);
+        } else {
+          alert("無法找到餐廳資料，請重試");
+        }
       } else {
-        console.error("儲存餐廳失敗:", data.error);
-        alert("儲存餐廳資料失敗，請重試");
+        console.error("處理餐廳資料失敗:", data.error);
+        alert("處理餐廳資料失敗，請重試");
       }
     } catch (error) {
       console.error("選擇餐廳錯誤:", error);
@@ -104,25 +116,12 @@ export default function SearchPage() {
     }
   };
 
-  const handleViewDetails = async (restaurant: Restaurant) => {
-    try {
-      // 使用 Google Places Details API 取得詳細資訊
-      const response = await fetch(
-        `/api/places/details?placeId=${restaurant.googleId}`
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log("餐廳詳細資訊:", data);
-        // 這裡可以開啟一個詳細資訊的 modal 或導向詳細頁面
-        alert(`餐廳詳細資訊：\n${JSON.stringify(data.place, null, 2)}`);
-      } else {
-        alert("取得詳細資訊失敗");
-      }
-    } catch (error) {
-      console.error("查看詳情錯誤:", error);
-      alert("查看詳情時發生錯誤");
-    }
+  const handleViewDetails = (restaurant: Restaurant) => {
+    // 建立 Google Maps 連結
+    const mapsUrl = `https://www.google.com/maps/place/?q=place_id:${restaurant.googleId}`;
+    
+    // 在新分頁開啟 Google Maps
+    window.open(mapsUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -147,7 +146,14 @@ export default function SearchPage() {
               placeholder="輸入店名、地區或關鍵字..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              onKeyDown={(e) => {
+                // 只有在非組字狀態下，按Enter才執行搜尋
+                if (e.key === "Enter" && !isComposing) {
+                  handleSearch();
+                }
+              }}
               className="flex-1"
             />
             <Button onClick={handleSearch} disabled={isLoading}>
@@ -198,7 +204,7 @@ export default function SearchPage() {
             <div className="space-y-4">
               {results.map((restaurant) => (
                 <Card
-                  key={restaurant.id}
+                  key={restaurant.googleId}
                   className="hover:shadow-lg transition-shadow"
                 >
                   <CardContent className="p-6">
