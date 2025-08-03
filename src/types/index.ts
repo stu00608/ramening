@@ -52,7 +52,7 @@ export interface ReviewFormData {
   visitDate: Date;
   visitTime: string;
   partySize: number;
-  hasReservation: boolean;
+  reservationStatus: string;
   waitTime?: number;
 
   // 點餐細節
