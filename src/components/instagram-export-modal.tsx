@@ -24,7 +24,7 @@ interface Review {
   sideItems: Array<{ name: string; price: number }>;
   tags: string[];
   address: string;
-  photos: number;
+  photos: Array<{ url: string; category: string; description?: string }>;
   textReview: string;
   createdAt: string;
   guestCount?: string;

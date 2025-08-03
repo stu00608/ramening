@@ -46,7 +46,7 @@ interface Review {
   sideItems: Array<{ name: string; price: number }>;
   tags: string[];
   address: string;
-  photos: number;
+  photos: Array<{ url: string; category: string; description?: string }>;
   textReview: string;
   createdAt: string;
   guestCount?: string;
@@ -69,7 +69,11 @@ const mockReviews: Review[] = [
     sideItems: [{ name: "溏心蛋", price: 130 }],
     tags: ["濃厚湯頭", "溏心蛋", "深夜營業"],
     address: "東京都渋谷区宇田川町13-8",
-    photos: 3,
+    photos: [
+      { url: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400", category: "拉麵", description: "豚骨拉麵" },
+      { url: "https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=400", category: "副餐", description: "溏心蛋" },
+      { url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400", category: "店內環境" },
+    ],
     textReview:
       "湯頭濃郁，麵條Q彈，整體體驗很棒！店內環境乾淨，服務態度友善...",
     createdAt: "2024-01-15T20:30:00Z",
@@ -91,7 +95,13 @@ const mockReviews: Review[] = [
     sideItems: [{ name: "煎餃", price: 280 }],
     tags: ["清淡", "魚介拉麵", "蔥花"],
     address: "東京都台東区浅草橋5-9-2",
-    photos: 5,
+    photos: [
+      { url: "https://images.unsplash.com/photo-1588613254457-14a5c0a26f0a?w=400", category: "拉麵", description: "醬油拉麵" },
+      { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", category: "副餐", description: "煎餃" },
+      { url: "https://images.unsplash.com/photo-1514516345957-556ca7d90a29?w=400", category: "店內環境" },
+      { url: "https://images.unsplash.com/photo-1559847844-d508066760bb?w=400", category: "菜單" },
+      { url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400", category: "店家外觀" },
+    ],
     textReview: "非常棒的醬油拉麵，湯頭清澈但味道豐富，魚介香味突出...",
     createdAt: "2024-01-10T12:15:00Z",
     guestCount: "2",
@@ -111,7 +121,10 @@ const mockReviews: Review[] = [
     sideItems: [],
     tags: ["味噌拉麵", "粗麵", "叉燒"],
     address: "東京都新宿区歌舞伎町1-6-2",
-    photos: 2,
+    photos: [
+      { url: "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=400", category: "拉麵", description: "味噌拉麵" },
+      { url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400", category: "店內環境" },
+    ],
     textReview: "味噌湯頭香濃，叉燒肉質軟嫩，性價比不錯的選擇...",
     createdAt: "2024-01-05T19:45:00Z",
     guestCount: "1",
@@ -212,6 +225,10 @@ export default function ReviewsPage() {
     ));
   };
 
+  const getRamenPhoto = (review: Review) => {
+    return review.photos.find(photo => photo.category === "拉麵");
+  };
+
   return (
     <div className="container mx-auto px-6 py-8">
       <div className="mb-8">
@@ -268,32 +285,11 @@ export default function ReviewsPage() {
       </Card>
 
       {/* 統計資訊 */}
-      <div className="grid gap-4 md:grid-cols-4 mb-8">
+      <div className="grid gap-4 md:grid-cols-2 mb-8">
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold">{reviews.length}</div>
             <p className="text-xs text-muted-foreground">總評價數</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold">
-              {(
-                reviews.reduce((sum, review) => sum + review.rating, 0) /
-                  reviews.length || 0
-              ).toFixed(1)}
-            </div>
-            <p className="text-xs text-muted-foreground">平均評分</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold">
-              {reviews.reduce((sum, review) => sum + review.photos, 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">總照片數</p>
           </CardContent>
         </Card>
 
@@ -358,7 +354,7 @@ export default function ReviewsPage() {
                 className="hover:shadow-lg transition-shadow"
               >
                 <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
+                  <div className="flex gap-4">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold mb-2">
                         {review.restaurantName}
@@ -381,9 +377,6 @@ export default function ReviewsPage() {
                             {review.rating}
                           </span>
                         </div>
-                        <span className="text-sm text-muted-foreground">
-                          {review.photos} 張照片
-                        </span>
                       </div>
 
                       <div className="flex flex-wrap gap-2 mb-3">
@@ -421,6 +414,17 @@ export default function ReviewsPage() {
                         {review.textReview}
                       </p>
                     </div>
+
+                    {/* 拉麵照片預覽 */}
+                    {getRamenPhoto(review) && (
+                      <div className="flex-shrink-0 w-32 h-24">
+                        <img
+                          src={getRamenPhoto(review)!.url}
+                          alt={getRamenPhoto(review)!.description || "拉麵照片"}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
 
                     <div className="flex flex-col gap-2 ml-4">
                       <Button size="sm" variant="outline" asChild>
