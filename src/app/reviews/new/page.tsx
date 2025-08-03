@@ -205,6 +205,10 @@ export default function NewReviewPage() {
     setPhotos(photos.filter((_, i) => i !== index));
   };
 
+  const createImagePreview = (file: File): string => {
+    return URL.createObjectURL(file);
+  };
+
   const updatePhotoCategory = (index: number, category: string) => {
     const updated = [...photos];
     updated[index] = { ...updated[index], category };
@@ -403,7 +407,7 @@ export default function NewReviewPage() {
                 key={`ramen-${index}-${item.name}`}
                 className="border rounded-lg p-4 space-y-4"
               >
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_120px_1fr_40px] gap-4 items-end">
                   <div className="space-y-2">
                     <Label>品項名稱</Label>
                     <Input
@@ -452,12 +456,13 @@ export default function NewReviewPage() {
                     </Select>
                   </div>
 
-                  <div>
+                  <div className="flex items-end">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => removeRamenItem(index)}
                       disabled={ramenItems.length === 1}
+                      className="h-10"
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -500,7 +505,7 @@ export default function NewReviewPage() {
                 key={`side-${index}-${item.name}`}
                 className="border rounded-lg p-4"
               >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_120px_40px] gap-4 items-end">
                   <div className="space-y-2">
                     <Label>品項名稱</Label>
                     <Input
@@ -528,11 +533,12 @@ export default function NewReviewPage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="flex items-end">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => removeSideItem(index)}
+                      className="h-10"
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -553,7 +559,7 @@ export default function NewReviewPage() {
         {/* 照片上傳 */}
         <Card>
           <CardHeader>
-            <CardTitle>照片上傳 ({photos.length}/10)</CardTitle>
+            <CardTitle>照片上傳</CardTitle>
           </CardHeader>
           <CardContent
             className="space-y-6"
@@ -589,11 +595,11 @@ export default function NewReviewPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center gap-4 overflow-x-auto pb-4">
+                <div className="flex items-start gap-4 overflow-x-auto pb-4">
                   {photos.map((photo, index) => (
                     <div
                       key={`photo-${index}-${photo.file.name}`}
-                      className="flex-shrink-0 w-48 border rounded-lg p-3 space-y-3"
+                      className="flex-shrink-0 w-72 border rounded-lg p-4 space-y-4"
                     >
                       <div className="flex items-center justify-between">
                         <h4 className="font-medium truncate text-sm">
@@ -608,49 +614,60 @@ export default function NewReviewPage() {
                         </Button>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>照片分類</Label>
-                        <Select
-                          value={photo.category}
-                          onValueChange={(value) =>
-                            updatePhotoCategory(index, value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {photoCategories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      {/* 照片預覽 */}
+                      <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                        <img
+                          src={createImagePreview(photo.file)}
+                          alt={photo.file.name}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>照片說明（選填）</Label>
-                        <Input
-                          value={photo.description || ""}
-                          onChange={(e) =>
-                            updatePhotoDescription(index, e.target.value)
-                          }
-                          placeholder="簡單描述照片內容..."
-                        />
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label>照片分類</Label>
+                          <Select
+                            value={photo.category}
+                            onValueChange={(value) =>
+                              updatePhotoCategory(index, value)
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {photoCategories.map((category) => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>照片說明（選填）</Label>
+                          <Input
+                            value={photo.description || ""}
+                            onChange={(e) =>
+                              updatePhotoDescription(index, e.target.value)
+                            }
+                            placeholder="簡單描述照片內容..."
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}
                   
                   {photos.length < 10 && (
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 flex items-center h-full min-h-[300px]">
                       <Button
                         variant="outline"
                         size="lg"
-                        className="w-12 h-12 rounded-full p-0"
+                        className="w-16 h-16 rounded-full p-0"
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        <Plus className="h-6 w-6" />
+                        <Plus className="h-8 w-8" />
                       </Button>
                     </div>
                   )}
