@@ -626,7 +626,7 @@ export default function NewReviewPage() {
                       </div>
 
                       {/* 照片預覽 */}
-                      <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                      <div className="relative aspect-square bg-muted rounded-md overflow-hidden">
                         <img
                           src={createImagePreview(photo.file)}
                           alt={photo.file.name}
