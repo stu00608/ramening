@@ -9,17 +9,24 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface Restaurant {
-  id: string;
+  googleId: string;
   name: string;
   address: string;
+  fullAddress: string;
   prefecture: string;
   city: string;
   postalCode: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
   rating?: number;
-  priceLevel?: number;
-  phoneNumber?: string;
-  openingHours?: string[];
-  photoUrl?: string;
+  userRatingsTotal?: number;
+  photos?: Array<{
+    reference: string;
+    width: number;
+    height: number;
+  }>;
 }
 
 export default function SearchPage() {
@@ -38,7 +45,7 @@ export default function SearchPage() {
     try {
       // 使用 Google Places API 搜尋
       const response = await fetch(
-        `/api/places/search?query=${encodeURIComponent(searchTerm + " 拉麵")}&location=35.6762,139.6503`
+        `/api/places/search?query=${encodeURIComponent(searchTerm)}&lat=35.6762&lng=139.6503&radius=10000`
       );
       
       if (!response.ok) {
@@ -47,8 +54,8 @@ export default function SearchPage() {
 
       const data = await response.json();
       
-      if (data.success && data.places) {
-        setResults(data.places);
+      if (data.restaurants && Array.isArray(data.restaurants)) {
+        setResults(data.restaurants);
       } else {
         setResults([]);
       }
@@ -78,7 +85,7 @@ export default function SearchPage() {
           city: restaurant.city,
           postalCode: restaurant.postalCode,
           address: formatStandardAddress(restaurant),
-          googleId: restaurant.id,
+          googleId: restaurant.googleId,
         }),
       });
 
@@ -101,7 +108,7 @@ export default function SearchPage() {
     try {
       // 使用 Google Places Details API 取得詳細資訊
       const response = await fetch(
-        `/api/places/details?placeId=${restaurant.id}`
+        `/api/places/details?placeId=${restaurant.googleId}`
       );
       
       if (response.ok) {
