@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TimePicker } from "@/components/ui/time-picker";
+import { PhotoCropModal } from "@/components/photo-crop-modal";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, Minus, Plus, Upload, X } from "lucide-react";
@@ -111,6 +112,10 @@ export default function NewReviewPage() {
   const [sideItems, setSideItems] = useState<SideItem[]>([]);
   const [photos, setPhotos] = useState<PhotoUpload[]>([]);
   const [textReview, setTextReview] = useState("");
+  
+  // 照片裁切相關狀態
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [fileToProcess, setFileToProcess] = useState<File | null>(null);
 
   const addRamenItem = () => {
     if (ramenItems.length < 5) {
@@ -154,19 +159,20 @@ export default function NewReviewPage() {
     setSideItems(updated);
   };
 
+  const processFileForCrop = (file: File) => {
+    if (file.size <= 5 * 1024 * 1024 && photos.length < 10) {
+      // 5MB 限制，最多10張照片
+      setFileToProcess(file);
+      setCropModalOpen(true);
+    }
+  };
+
   const handlePhotoUpload = (files: FileList | File[]) => {
     const fileArray = Array.from(files);
-    const validFiles: { file: File; category: string }[] = [];
     
-    for (const file of fileArray) {
-      if (file.size <= 5 * 1024 * 1024 && photos.length + validFiles.length < 10) {
-        // 5MB 限制，最多10張照片
-        validFiles.push({ file, category: "拉麵" });
-      }
-    }
-    
-    if (validFiles.length > 0) {
-      setPhotos((prev) => [...prev, ...validFiles]);
+    // 處理第一個檔案進行裁切
+    if (fileArray.length > 0) {
+      processFileForCrop(fileArray[0]);
     }
   };
 
@@ -219,6 +225,11 @@ export default function NewReviewPage() {
     const updated = [...photos];
     updated[index] = { ...updated[index], description };
     setPhotos(updated);
+  };
+
+  const handleCropComplete = (croppedFile: File, category: string) => {
+    setPhotos((prev) => [...prev, { file: croppedFile, category }]);
+    setFileToProcess(null);
   };
 
   const handleSubmit = () => {
@@ -676,6 +687,14 @@ export default function NewReviewPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* 照片裁切 Modal */}
+        <PhotoCropModal
+          open={cropModalOpen}
+          onOpenChange={setCropModalOpen}
+          file={fileToProcess}
+          onCropComplete={handleCropComplete}
+        />
 
         {/* 標籤 */}
         <Card>

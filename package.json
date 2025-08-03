@@ -52,6 +52,7 @@
     "react-day-picker": "^9.8.1",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.62.0",
+    "react-image-crop": "^11.0.10",
     "sonner": "^2.0.6",
     "tailwind-merge": "^2.5.4",
     "zod": "^4.0.14"
