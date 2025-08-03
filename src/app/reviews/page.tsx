@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Review } from "@/types/review";
 import {
   Calendar,
   Edit,
@@ -34,7 +35,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import type { Review } from "@/types/review";
 
 const mockReviews: Review[] = [
   {
@@ -48,9 +48,20 @@ const mockReviews: Review[] = [
     tags: ["濃厚湯頭", "溏心蛋", "深夜營業"],
     address: "東京都渋谷区宇田川町13-8",
     photos: [
-      { url: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400", category: "拉麵", description: "豚骨拉麵" },
-      { url: "https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=400", category: "副餐", description: "溏心蛋" },
-      { url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400", category: "店內環境" },
+      {
+        url: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400",
+        category: "拉麵",
+        description: "豚骨拉麵",
+      },
+      {
+        url: "https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=400",
+        category: "副餐",
+        description: "溏心蛋",
+      },
+      {
+        url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400",
+        category: "店內環境",
+      },
     ],
     textReview:
       "湯頭濃郁，麵條Q彈，整體體驗很棒！店內環境乾淨，服務態度友善...",
@@ -74,11 +85,28 @@ const mockReviews: Review[] = [
     tags: ["清淡", "魚介拉麵", "蔥花"],
     address: "東京都台東区浅草橋5-9-2",
     photos: [
-      { url: "https://images.unsplash.com/photo-1588613254457-14a5c0a26f0a?w=400", category: "拉麵", description: "醬油拉麵" },
-      { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", category: "副餐", description: "煎餃" },
-      { url: "https://images.unsplash.com/photo-1514516345957-556ca7d90a29?w=400", category: "店內環境" },
-      { url: "https://images.unsplash.com/photo-1559847844-d508066760bb?w=400", category: "菜單" },
-      { url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400", category: "店家外觀" },
+      {
+        url: "https://images.unsplash.com/photo-1588613254457-14a5c0a26f0a?w=400",
+        category: "拉麵",
+        description: "醬油拉麵",
+      },
+      {
+        url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+        category: "副餐",
+        description: "煎餃",
+      },
+      {
+        url: "https://images.unsplash.com/photo-1514516345957-556ca7d90a29?w=400",
+        category: "店內環境",
+      },
+      {
+        url: "https://images.unsplash.com/photo-1559847844-d508066760bb?w=400",
+        category: "菜單",
+      },
+      {
+        url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400",
+        category: "店家外觀",
+      },
     ],
     textReview: "非常棒的醬油拉麵，湯頭清澈但味道豐富，魚介香味突出...",
     createdAt: "2024-01-10T12:15:00Z",
@@ -100,8 +128,15 @@ const mockReviews: Review[] = [
     tags: ["味噌拉麵", "粗麵", "叉燒"],
     address: "東京都新宿区歌舞伎町1-6-2",
     photos: [
-      { url: "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=400", category: "拉麵", description: "味噌拉麵" },
-      { url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400", category: "店內環境" },
+      {
+        url: "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=400",
+        category: "拉麵",
+        description: "味噌拉麵",
+      },
+      {
+        url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400",
+        category: "店內環境",
+      },
     ],
     textReview: "味噌湯頭香濃，叉燒肉質軟嫩，性價比不錯的選擇...",
     createdAt: "2024-01-05T19:45:00Z",
@@ -204,7 +239,7 @@ export default function ReviewsPage() {
   };
 
   const getRamenPhoto = (review: Review) => {
-    return review.photos.find(photo => photo.category === "拉麵");
+    return review.photos.find((photo) => photo.category === "拉麵");
   };
 
   return (

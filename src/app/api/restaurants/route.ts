@@ -24,7 +24,14 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: {
+      OR?: Array<{
+        name?: { contains: string; mode: "insensitive" };
+        address?: { contains: string; mode: "insensitive" };
+      }>;
+      prefecture?: string;
+      city?: string;
+    } = {};
 
     if (search) {
       where.OR = [

@@ -8,6 +8,10 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     globals: true,
+    env: {
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5433/ramening_dev",
+      NODE_ENV: "test",
+    },
   },
   resolve: {
     alias: {

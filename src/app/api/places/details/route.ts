@@ -1,6 +1,6 @@
+import { parseJapaneseAddress } from "@/lib/utils";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { parseJapaneseAddress } from "@/lib/utils";
 
 // Google Place Details API 參數驗證 schema
 const PlaceDetailsSchema = z.object({
@@ -50,7 +50,6 @@ interface GooglePlaceDetailsResponse {
   status: string;
   error_message?: string;
 }
-
 
 // GET /api/places/details - 取得特定場所的詳細資訊
 export async function GET(request: NextRequest) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { PhotoCropModal } from "@/components/photo-crop-modal";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TimePicker } from "@/components/ui/time-picker";
-import { PhotoCropModal } from "@/components/photo-crop-modal";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, Minus, Plus, Upload, X } from "lucide-react";
@@ -112,7 +112,7 @@ export default function NewReviewPage() {
   const [sideItems, setSideItems] = useState<SideItem[]>([]);
   const [photos, setPhotos] = useState<PhotoUpload[]>([]);
   const [textReview, setTextReview] = useState("");
-  
+
   // 照片裁切相關狀態
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [fileToProcess, setFileToProcess] = useState<File | null>(null);
@@ -169,14 +169,16 @@ export default function NewReviewPage() {
 
   const handlePhotoUpload = (files: FileList | File[]) => {
     const fileArray = Array.from(files);
-    
+
     // 處理第一個檔案進行裁切
     if (fileArray.length > 0) {
       processFileForCrop(fileArray[0]);
     }
   };
 
-  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = event.target.files;
     if (!files) return;
     handlePhotoUpload(files);
@@ -200,7 +202,7 @@ export default function NewReviewPage() {
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    
+
     const files = event.dataTransfer.files;
     if (files) {
       handlePhotoUpload(files);
@@ -669,7 +671,7 @@ export default function NewReviewPage() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {photos.length < 10 && (
                     <div className="flex-shrink-0 flex items-center h-full min-h-[300px]">
                       <Button

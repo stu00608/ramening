@@ -99,7 +99,6 @@ ${reviewData.sideItems.length > 0 ? `配菜🍥：${reviewData.sideItems.map((it
     return post;
   }, []);
 
-
   const handleCopyToClipboard = async () => {
     if (generatedPost) {
       try {

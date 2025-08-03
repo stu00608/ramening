@@ -6,7 +6,7 @@ import { NextRequest } from "next/server";
  * @param options 請求選項
  * @returns NextRequest 物件
  */
-export function createRequest(url: string, options: any = {}) {
+export function createRequest(url: string, options: RequestInit = {}) {
   return new NextRequest(url, {
     method: "GET",
     ...options,
