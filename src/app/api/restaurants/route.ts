@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    const where: { OR?: unknown[]; prefecture?: string; city?: string } = {};
+    const where: any = {};
 
     if (search) {
       where.OR = [
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "資料驗證失敗", details: error.errors },
+        { error: "資料驗證失敗", details: error.issues },
         { status: 400 }
       );
     }

@@ -64,11 +64,12 @@ const UpdateReviewSchema = z.object({
 // GET /api/reviews/[id] - 取得特定評價
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const review = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         restaurant: true,
         ramenItems: true,
@@ -92,9 +93,10 @@ export async function GET(
 // PUT /api/reviews/[id] - 更新評價
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // 驗證輸入資料
@@ -102,7 +104,7 @@ export async function PUT(
 
     // 檢查評價是否存在
     const existingReview = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         ramenItems: true,
         sideItems: true,
@@ -151,7 +153,7 @@ export async function PUT(
         updateData.textReview = validatedData.textReview;
 
       const review = await tx.review.update({
-        where: { id: params.id },
+        where: { id },
         data: updateData,
       });
 
@@ -159,7 +161,7 @@ export async function PUT(
       if (validatedData.ramenItems) {
         // 刪除現有的拉麵品項
         await tx.ramenItem.deleteMany({
-          where: { reviewId: params.id },
+          where: { reviewId: id },
         });
 
         // 建立新的拉麵品項
@@ -170,7 +172,7 @@ export async function PUT(
               price: item.price,
               category: item.category,
               customization: item.customization,
-              reviewId: params.id,
+              reviewId: id,
             })),
           });
         }
@@ -180,7 +182,7 @@ export async function PUT(
       if (validatedData.sideItems) {
         // 刪除現有的副餐品項
         await tx.sideItem.deleteMany({
-          where: { reviewId: params.id },
+          where: { reviewId: id },
         });
 
         // 建立新的副餐品項
@@ -189,7 +191,7 @@ export async function PUT(
             data: validatedData.sideItems.map((item) => ({
               name: item.name,
               price: item.price,
-              reviewId: params.id,
+              reviewId: id,
             })),
           });
         }
@@ -199,7 +201,7 @@ export async function PUT(
       if (validatedData.tags) {
         // 斷開現有的標籤關係
         await tx.review.update({
-          where: { id: params.id },
+          where: { id },
           data: {
             tags: {
               set: [],
@@ -222,7 +224,7 @@ export async function PUT(
 
           // 連接新的標籤
           await tx.review.update({
-            where: { id: params.id },
+            where: { id },
             data: {
               tags: {
                 connect: tags.map((tag) => ({ id: tag.id })),
@@ -236,7 +238,7 @@ export async function PUT(
       if (validatedData.photos) {
         // 刪除現有的照片記錄
         await tx.photo.deleteMany({
-          where: { reviewId: params.id },
+          where: { reviewId: id },
         });
 
         // 建立新的照片記錄
@@ -247,7 +249,7 @@ export async function PUT(
               path: photo.path,
               category: photo.category,
               size: photo.size,
-              reviewId: params.id,
+              reviewId: id,
             })),
           });
         }
@@ -258,7 +260,7 @@ export async function PUT(
 
     // 回傳完整的評價資料
     const completeReview = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         restaurant: true,
         ramenItems: true,
@@ -272,7 +274,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "資料驗證失敗", details: error.errors },
+        { error: "資料驗證失敗", details: error.issues },
         { status: 400 }
       );
     }
@@ -285,12 +287,13 @@ export async function PUT(
 // DELETE /api/reviews/[id] - 刪除評價
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // 檢查評價是否存在
     const existingReview = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         photos: true,
       },
@@ -303,7 +306,7 @@ export async function DELETE(
     await prisma.$transaction(async (tx) => {
       // 刪除評價會自動刪除相關的子記錄（因為設定了 onDelete: Cascade）
       await tx.review.delete({
-        where: { id: params.id },
+        where: { id },
       });
     });
 

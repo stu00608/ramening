@@ -11,12 +11,13 @@ import { type NextRequest, NextResponse } from "next/server";
 // GET /api/reviews/[id]/instagram - 生成 Instagram 匯出內容
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // 取得完整的評價資料
     const review = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         restaurant: true,
         ramenItems: true,
@@ -27,7 +28,7 @@ export async function GET(
     });
 
     if (!review) {
-      throw Errors.notFound("評價", params.id);
+      throw Errors.notFound("評價", id);
     }
 
     // 驗證評價資料完整性
@@ -80,9 +81,10 @@ export async function GET(
 // POST /api/reviews/[id]/instagram - 自訂 Instagram 匯出設定
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const {
       includeHashtags = true,
@@ -92,7 +94,7 @@ export async function POST(
 
     // 取得完整的評價資料
     const review = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         restaurant: true,
         ramenItems: true,
@@ -103,7 +105,7 @@ export async function POST(
     });
 
     if (!review) {
-      throw Errors.notFound("評價", params.id);
+      throw Errors.notFound("評價", id);
     }
 
     // 驗證評價資料完整性

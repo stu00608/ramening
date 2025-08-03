@@ -18,11 +18,12 @@ const UpdateRestaurantSchema = z.object({
 // GET /api/restaurants/[id] - 取得特定餐廳
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const restaurant = await prisma.restaurant.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         reviews: {
           include: {
@@ -55,9 +56,10 @@ export async function GET(
 // PUT /api/restaurants/[id] - 更新餐廳資訊
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // 驗證輸入資料
@@ -65,7 +67,7 @@ export async function PUT(
 
     // 檢查餐廳是否存在
     const existingRestaurant = await prisma.restaurant.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingRestaurant) {
@@ -73,7 +75,7 @@ export async function PUT(
     }
 
     const restaurant = await prisma.restaurant.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
       include: {
         _count: {
@@ -86,7 +88,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "資料驗證失敗", details: error.errors },
+        { error: "資料驗證失敗", details: error.issues },
         { status: 400 }
       );
     }
@@ -99,12 +101,13 @@ export async function PUT(
 // DELETE /api/restaurants/[id] - 刪除餐廳
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // 檢查餐廳是否存在
     const existingRestaurant = await prisma.restaurant.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: { reviews: true },
@@ -125,7 +128,7 @@ export async function DELETE(
     }
 
     await prisma.restaurant.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: "餐廳已成功刪除" });
