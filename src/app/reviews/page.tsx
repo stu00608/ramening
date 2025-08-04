@@ -34,132 +34,145 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
-const mockReviews: Review[] = [
-  {
-    id: "1",
-    restaurantName: "一蘭拉麵 渋谷店",
-    visitDate: "2024-01-15",
-    visitTime: "20:30",
-    rating: 4.5,
-    ramenItems: [{ name: "豚骨拉麵", price: 890, customization: "麵硬、湯濃" }],
-    sideItems: [{ name: "溏心蛋", price: 130 }],
-    tags: ["濃厚湯頭", "溏心蛋", "深夜營業"],
-    address: "東京都渋谷区宇田川町13-8",
-    photos: [
-      {
-        url: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400",
-        category: "拉麵",
-        description: "豚骨拉麵",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=400",
-        category: "副餐",
-        description: "溏心蛋",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400",
-        category: "店內環境",
-      },
-    ],
-    textReview:
-      "湯頭濃郁，麵條Q彈，整體體驗很棒！店內環境乾淨，服務態度友善...",
-    createdAt: "2024-01-15T20:30:00Z",
-    guestCount: "1",
-    reservationStatus: "排隊等候",
-    waitTime: "30分鐘內",
-    orderMethod: "食券機",
-    paymentMethods: ["現金", "QR決済"],
-    nearestStation: "渋谷駅",
-    walkingTime: "3",
-  },
-  {
-    id: "2",
-    restaurantName: "麺や 七彩",
-    visitDate: "2024-01-10",
-    visitTime: "12:15",
-    rating: 5.0,
-    ramenItems: [{ name: "醬油拉麵", price: 800 }],
-    sideItems: [{ name: "煎餃", price: 280 }],
-    tags: ["清淡", "魚介拉麵", "蔥花"],
-    address: "東京都台東区浅草橋5-9-2",
-    photos: [
-      {
-        url: "https://images.unsplash.com/photo-1588613254457-14a5c0a26f0a?w=400",
-        category: "拉麵",
-        description: "醬油拉麵",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
-        category: "副餐",
-        description: "煎餃",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1514516345957-556ca7d90a29?w=400",
-        category: "店內環境",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1559847844-d508066760bb?w=400",
-        category: "菜單",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400",
-        category: "店家外觀",
-      },
-    ],
-    textReview: "非常棒的醬油拉麵，湯頭清澈但味道豐富，魚介香味突出...",
-    createdAt: "2024-01-10T12:15:00Z",
-    guestCount: "2",
-    reservationStatus: "無需排隊",
-    orderMethod: "注文制",
-    paymentMethods: ["現金", "信用卡"],
-    nearestStation: "浅草橋駅",
-    walkingTime: "2",
-  },
-  {
-    id: "3",
-    restaurantName: "らーめん 大至急",
-    visitDate: "2024-01-05",
-    visitTime: "19:45",
-    rating: 4.0,
-    ramenItems: [{ name: "味噌拉麵", price: 850 }],
-    sideItems: [],
-    tags: ["味噌拉麵", "粗麵", "叉燒"],
-    address: "東京都新宿区歌舞伎町1-6-2",
-    photos: [
-      {
-        url: "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=400",
-        category: "拉麵",
-        description: "味噌拉麵",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1555992336-03a23c0aba43?w=400",
-        category: "店內環境",
-      },
-    ],
-    textReview: "味噌湯頭香濃，叉燒肉質軟嫩，性價比不錯的選擇...",
-    createdAt: "2024-01-05T19:45:00Z",
-    guestCount: "1",
-    reservationStatus: "事前預約",
-    orderMethod: "食券機",
-    paymentMethods: ["現金"],
-    nearestStation: "新宿駅",
-    walkingTime: "5",
-  },
-];
+// 用於轉換資料庫資料的介面
+interface DatabaseReview {
+  id: string;
+  visitDate: string;
+  visitTime: string;
+  partySize: number;
+  reservationStatus: string;
+  waitTime?: number;
+  orderMethod: string;
+  paymentMethod: string;
+  textReview: string;
+  nearestStation?: string;
+  walkingTime?: number;
+  stationPlaceId?: string;
+  createdAt: string;
+  updatedAt: string;
+  restaurant: {
+    id: string;
+    name: string;
+    prefecture: string;
+    city: string;
+    postalCode: string;
+    address: string;
+    googleId?: string;
+  };
+  ramenItems: Array<{
+    id: string;
+    name: string;
+    price: number;
+    category: string;
+    customization?: string;
+  }>;
+  sideItems: Array<{
+    id: string;
+    name: string;
+    price: number;
+  }>;
+  tags: Array<{
+    id: string;
+    name: string;
+  }>;
+  photos: Array<{
+    id: string;
+    filename: string;
+    path: string;
+    category: string;
+    size: number;
+  }>;
+}
+
+// 轉換資料庫資料為前端 Review 格式
+const convertDatabaseReview = (dbReview: DatabaseReview): Review => {
+  return {
+    id: dbReview.id,
+    restaurantName: dbReview.restaurant.name,
+    visitDate: new Date(dbReview.visitDate).toISOString().split('T')[0],
+    visitTime: dbReview.visitTime,
+    rating: 4.5, // 暫時固定值，因為資料庫中還沒有評分欄位
+    ramenItems: dbReview.ramenItems.map(item => ({
+      name: item.name,
+      price: item.price,
+      customization: item.customization || ''
+    })),
+    sideItems: dbReview.sideItems.map(item => ({
+      name: item.name,
+      price: item.price
+    })),
+    tags: dbReview.tags.map(tag => tag.name),
+    address: dbReview.restaurant.address.startsWith(dbReview.restaurant.prefecture) 
+      ? dbReview.restaurant.address 
+      : `${dbReview.restaurant.prefecture}${dbReview.restaurant.city}${dbReview.restaurant.address}`,
+    photos: dbReview.photos.map(photo => ({
+      url: `/uploads/${photo.filename}`, // 假設照片存放在 uploads 目錄
+      category: photo.category,
+      description: photo.filename
+    })),
+    textReview: dbReview.textReview,
+    createdAt: dbReview.createdAt,
+    guestCount: dbReview.partySize.toString(),
+    reservationStatus: dbReview.reservationStatus,
+    waitTime: dbReview.waitTime ? `${dbReview.waitTime}分鐘` : undefined,
+    orderMethod: dbReview.orderMethod,
+    paymentMethods: dbReview.paymentMethod.split(', '),
+    nearestStation: dbReview.nearestStation,
+    walkingTime: dbReview.walkingTime?.toString(),
+  };
+};
 
 export default function ReviewsPage() {
-  const [reviews, setReviews] = useState<Review[]>(mockReviews);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("latest");
   const [filterBy, setFilterBy] = useState("all");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [selectedReviewForExport, setSelectedReviewForExport] =
     useState<Review | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
+
+  // 載入評價資料
+  const loadReviews = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/reviews');
+      if (!response.ok) {
+        throw new Error('載入評價失敗');
+      }
+      const data = await response.json();
+      
+      if (data.reviews && Array.isArray(data.reviews)) {
+        const convertedReviews = data.reviews.map((dbReview: DatabaseReview) => 
+          convertDatabaseReview(dbReview)
+        );
+        setReviews(convertedReviews);
+      } else {
+        setReviews([]);
+      }
+    } catch (error) {
+      console.error('載入評價錯誤:', error);
+      toast({
+        title: "載入評價失敗",
+        description: "無法載入評價資料，請重試",
+        variant: "destructive",
+      });
+      setReviews([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 組件載入時執行
+  useEffect(() => {
+    loadReviews();
+  }, []);
 
   const filteredAndSortedReviews = reviews
     .filter((review) => {
@@ -210,9 +223,32 @@ export default function ReviewsPage() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (reviewToDelete) {
+  const confirmDelete = async () => {
+    if (!reviewToDelete) return;
+    
+    try {
+      const response = await fetch(`/api/reviews/${reviewToDelete}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('刪除評價失敗');
+      }
+      
+      // 成功刪除後從列表中移除
       setReviews(reviews.filter((review) => review.id !== reviewToDelete));
+      toast({
+        title: "刪除成功",
+        description: "評價已成功刪除",
+      });
+    } catch (error) {
+      console.error('刪除評價錯誤:', error);
+      toast({
+        title: "刪除失敗",
+        description: "無法刪除評價，請重試",
+        variant: "destructive",
+      });
+    } finally {
       setDeleteDialogOpen(false);
       setReviewToDelete(null);
     }
@@ -248,7 +284,7 @@ export default function ReviewsPage() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">評價管理</h1>
           <Button asChild>
-            <Link href="/reviews/new">建立新評價</Link>
+            <Link href="/search">建立新評價</Link>
           </Button>
         </div>
         <p className="text-muted-foreground">管理您的所有拉麵店評價記錄</p>
@@ -355,7 +391,7 @@ export default function ReviewsPage() {
                 請嘗試調整搜尋條件或篩選設定
               </p>
               <Button asChild>
-                <Link href="/reviews/new">建立第一則評價</Link>
+                <Link href="/search">建立第一則評價</Link>
               </Button>
             </CardContent>
           </Card>

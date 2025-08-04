@@ -25,32 +25,33 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, Minus, Plus, Upload, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 // 拉麵分類選項
 const ramenCategories = [
-  "醬油拉麵",
-  "鹽味拉麵",
-  "味噌拉麵",
-  "豚骨拉麵",
-  "雞白湯拉麵",
-  "煮干拉麵",
-  "魚介拉麵",
-  "家系拉麵",
-  "二郎系拉麵",
-  "沾麵",
-  "擔擔麵",
-  "油拌麵",
-  "冷麵",
-  "其他",
+  { label: "醬油拉麵", value: "SHOYU" },
+  { label: "鹽味拉麵", value: "SHIO" },
+  { label: "味噌拉麵", value: "MISO" },
+  { label: "豚骨拉麵", value: "TONKOTSU" },
+  { label: "雞白湯拉麵", value: "CHICKEN" },
+  { label: "煮干拉麵", value: "NIBOSHI" },
+  { label: "魚介拉麵", value: "GYOKAI" },
+  { label: "家系拉麵", value: "IEKEI" },
+  { label: "二郎系拉麵", value: "JIRO" },
+  { label: "沾麵", value: "TSUKEMEN" },
+  { label: "擔擔麵", value: "TANTANMEN" },
+  { label: "油拌麵", value: "MAZESOBA" },
+  { label: "冷麵", value: "HIYASHI" },
+  { label: "其他", value: "OTHER" },
 ];
 
 // 付款方式選項
 const paymentMethods: Option[] = [
-  { value: "cash", label: "現金" },
-  { value: "qr", label: "QR決済" },
-  { value: "ic", label: "交通系IC" },
-  { value: "credit", label: "信用卡" },
+  { value: "現金", label: "現金" },
+  { value: "QR決済", label: "QR決済" },
+  { value: "交通系IC", label: "交通系IC" },
+  { value: "信用卡", label: "信用卡" },
 ];
 
 // 照片分類選項
@@ -62,6 +63,16 @@ const photoCategories = [
   "菜單",
   "其他",
 ];
+
+// 照片分類中文到英文的映射
+const photoCategoryMapping: Record<string, string> = {
+  "拉麵": "RAMEN",
+  "副餐": "SIDE",
+  "店內環境": "INTERIOR",
+  "店家外觀": "EXTERIOR",
+  "菜單": "MENU",
+  "其他": "OTHER",
+};
 
 // 推薦標籤現在從餐廳歷史評價中動態載入
 
@@ -83,10 +94,11 @@ interface PhotoUpload {
   description?: string;
 }
 
-export default function NewReviewPage() {
+function NewReviewPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
   // 餐廳資訊狀態
   const [restaurant, setRestaurant] = useState<{
@@ -95,6 +107,7 @@ export default function NewReviewPage() {
     address: string;
     prefecture: string;
     city: string;
+    googleId?: string;
   } | null>(null);
   const [isLoadingRestaurant, setIsLoadingRestaurant] = useState(true);
   const [visitDate, setVisitDate] = useState<Date>();
@@ -114,6 +127,20 @@ export default function NewReviewPage() {
   const [sideItems, setSideItems] = useState<SideItem[]>([]);
   const [photos, setPhotos] = useState<PhotoUpload[]>([]);
   const [textReview, setTextReview] = useState("");
+
+  // 車站選擇相關狀態
+  const [nearestStations, setNearestStations] = useState<{
+    placeId: string;
+    name: string;
+    address: string;
+    walkingTime?: number;
+  }[]>([]);
+  const [selectedStation, setSelectedStation] = useState<{
+    placeId: string;
+    name: string;
+    walkingTime: number;
+  } | null>(null);
+  const [isLoadingStations, setIsLoadingStations] = useState(false);
 
   // 照片裁切相關狀態
   const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -138,16 +165,28 @@ export default function NewReviewPage() {
           if (restaurant && restaurant.id) {
             setRestaurant(restaurant);
           } else {
-            alert("找不到指定的餐廳");
+            toast({
+              title: "餐廳不存在",
+              description: "找不到指定的餐廳",
+              variant: "destructive",
+            });
             router.push("/search");
           }
         } else {
-          alert("載入餐廳資訊失敗");
+          toast({
+            title: "載入失敗",
+            description: "載入餐廳資訊失敗",
+            variant: "destructive",
+          });
           router.push("/search");
         }
       } catch (error) {
         console.error("載入餐廳資訊錯誤:", error);
-        alert("載入餐廳資訊時發生錯誤");
+        toast({
+          title: "發生錯誤",
+          description: "載入餐廳資訊時發生錯誤",
+          variant: "destructive",
+        });
         router.push("/search");
       } finally {
         setIsLoadingRestaurant(false);
@@ -183,6 +222,74 @@ export default function NewReviewPage() {
       loadRecommendedTags();
     }
   }, [restaurant?.id]);
+
+  // 載入附近車站並計算徒步時間
+  useEffect(() => {
+    if (restaurant?.googleId) {
+      const loadNearbyStations = async () => {
+        setIsLoadingStations(true);
+        try {
+          // 首先獲取餐廳詳細資訊（包含經緯度）
+          const detailsResponse = await fetch(`/api/places/details?placeId=${restaurant.googleId}`);
+          if (!detailsResponse.ok) {
+            throw new Error("無法獲取餐廳詳細資訊");
+          }
+          
+          const restaurantDetails = await detailsResponse.json();
+          const { location } = restaurantDetails;
+          
+          // 搜尋附近的車站
+          const stationsResponse = await fetch(
+            `/api/stations/search?lat=${location.lat}&lng=${location.lng}&radius=1500`
+          );
+          
+          if (!stationsResponse.ok) {
+            throw new Error("無法搜尋附近車站");
+          }
+          
+          const stationsData = await stationsResponse.json();
+          const stations = stationsData.stations || [];
+          
+          // 計算每個車站的徒步時間
+          const stationsWithWalkingTime = await Promise.all(
+            stations.map(async (station: any) => {
+              try {
+                const walkingResponse = await fetch(
+                  `/api/directions/walking?originPlaceId=${restaurant.googleId}&destinationPlaceId=${station.placeId}`
+                );
+                
+                if (walkingResponse.ok) {
+                  const walkingData = await walkingResponse.json();
+                  return {
+                    ...station,
+                    walkingTime: walkingData.duration.minutes,
+                  };
+                }
+                return station;
+              } catch (error) {
+                console.error(`計算到${station.name}的徒步時間失敗:`, error);
+                return station;
+              }
+            })
+          );
+          
+          // 過濾出20分鐘內的車站並排序
+          const nearbyStations = stationsWithWalkingTime
+            .filter((station) => station.walkingTime && station.walkingTime <= 20)
+            .sort((a, b) => (a.walkingTime || 999) - (b.walkingTime || 999));
+          
+          setNearestStations(nearbyStations);
+        } catch (error) {
+          console.error("載入附近車站失敗:", error);
+          setNearestStations([]);
+        } finally {
+          setIsLoadingStations(false);
+        }
+      };
+
+      loadNearbyStations();
+    }
+  }, [restaurant?.googleId]);
 
   const addRamenItem = () => {
     if (ramenItems.length < 5) {
@@ -303,7 +410,11 @@ export default function NewReviewPage() {
 
   const handleSubmit = async (isDraft = false) => {
     if (!restaurant) {
-      alert("餐廳資訊遺失，請重新選擇餐廳");
+      toast({
+        title: "餐廳資訊遺失",
+        description: "請重新選擇餐廳",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -314,17 +425,29 @@ export default function NewReviewPage() {
       );
 
       if (!hasValidRamenItem) {
-        alert("請至少填寫一個完整的拉麵品項（品項名稱、分類和價格）");
+        toast({
+          title: "拉麵品項未完整",
+          description: "請至少填寫一個完整的拉麵品項（品項名稱、分類和價格）",
+          variant: "destructive",
+        });
         return;
       }
 
       if (!textReview.trim()) {
-        alert("請填寫文字評價");
+        toast({
+          title: "文字評價未填寫",
+          description: "請填寫文字評價",
+          variant: "destructive",
+        });
         return;
       }
 
       if (!visitDate) {
-        alert("請選擇造訪日期");
+        toast({
+          title: "造訪日期未選擇",
+          description: "請選擇造訪日期",
+          variant: "destructive",
+        });
         return;
       }
     }
@@ -338,15 +461,20 @@ export default function NewReviewPage() {
       reservationStatus,
       waitTime: waitTime ? parseInt(waitTime) : null,
       orderMethod,
-      paymentMethod: selectedPaymentMethods.map(m => m.label).join(", "),
+      paymentMethods: selectedPaymentMethods.map(m => m.label),
       ramenItems: ramenItems.filter(item => item.name.trim()),
       sideItems: sideItems.filter(item => item.name.trim()),
       tags: selectedTags.map(tag => tag.label),
       textReview: textReview.trim(),
+      // 車站資訊
+      nearestStation: selectedStation?.name || null,
+      walkingTime: selectedStation?.walkingTime || null,
+      stationPlaceId: selectedStation?.placeId || null,
       photos: photos.map(photo => ({
         filename: photo.file.name,
-        category: photo.category,
-        description: photo.description,
+        path: `/uploads/${photo.file.name}`, // 假設照片會儲存在 uploads 目錄
+        category: photoCategoryMapping[photo.category] || "OTHER",
+        size: photo.file.size,
       })),
       isDraft,
     };
@@ -363,16 +491,30 @@ export default function NewReviewPage() {
       const data = await response.json();
 
       if (data.success) {
-        alert(isDraft ? "草稿已儲存" : "評價已成功建立");
+        toast({
+          title: isDraft ? "草稿已儲存" : "評價已成功建立",
+          description: isDraft ? "草稿已儲存，可稍後繼續編輯" : "評價已成功新增到系統中",
+        });
         if (!isDraft) {
           router.push("/reviews");
         }
       } else {
-        alert(`${isDraft ? "儲存草稿" : "建立評價"}失敗: ${data.error}`);
+        console.error("API錯誤詳情:", data);
+        toast({
+          title: `${isDraft ? "儲存草稿" : "建立評價"}失敗`,
+          description: data.details ? 
+            `${data.error}: ${data.details.map((d: any) => d.message).join(", ")}` : 
+            (data.error || "發生未知錯誤"),
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("提交評價錯誤:", error);
-      alert(`${isDraft ? "儲存草稿" : "建立評價"}時發生錯誤`);
+      toast({
+        title: `${isDraft ? "儲存草稿" : "建立評價"}時發生錯誤`,
+        description: "請檢查網路連接並重試",
+        variant: "destructive",
+      });
     }
   };
 
@@ -390,6 +532,7 @@ export default function NewReviewPage() {
       setSideItems([]);
       setPhotos([]);
       setTextReview("");
+      setSelectedStation(null);
     }
   };
 
@@ -520,15 +663,15 @@ export default function NewReviewPage() {
                     <SelectValue placeholder="選擇預約狀態" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="no-queue">無需排隊</SelectItem>
-                    <SelectItem value="queue">排隊等候</SelectItem>
-                    <SelectItem value="reservation">事前預約</SelectItem>
-                    <SelectItem value="name-list">記名制</SelectItem>
+                    <SelectItem value="無需排隊">無需排隊</SelectItem>
+                    <SelectItem value="排隊等候">排隊等候</SelectItem>
+                    <SelectItem value="事前預約">事前預約</SelectItem>
+                    <SelectItem value="記名制">記名制</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {reservationStatus === "queue" && (
+              {reservationStatus === "排隊等候" && (
                 <div className="space-y-2">
                   <Label htmlFor="wait-time">等待時間</Label>
                   <Select value={waitTime} onValueChange={setWaitTime}>
@@ -536,11 +679,11 @@ export default function NewReviewPage() {
                       <SelectValue placeholder="選擇等待時間" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="10min">10分鐘內</SelectItem>
-                      <SelectItem value="30min">30分鐘內</SelectItem>
-                      <SelectItem value="1hour">1小時內</SelectItem>
-                      <SelectItem value="2hours">2小時內</SelectItem>
-                      <SelectItem value="2hours+">2小時以上</SelectItem>
+                      <SelectItem value="10">10分鐘內</SelectItem>
+                      <SelectItem value="30">30分鐘內</SelectItem>
+                      <SelectItem value="60">1小時內</SelectItem>
+                      <SelectItem value="120">2小時內</SelectItem>
+                      <SelectItem value="150">2小時以上</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -563,9 +706,9 @@ export default function NewReviewPage() {
                     <SelectValue placeholder="選擇點餐方式" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="vending">食券機</SelectItem>
-                    <SelectItem value="order">注文制</SelectItem>
-                    <SelectItem value="other">其他</SelectItem>
+                    <SelectItem value="食券機">食券機</SelectItem>
+                    <SelectItem value="注文制">注文制</SelectItem>
+                    <SelectItem value="其他">其他</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -646,8 +789,8 @@ export default function NewReviewPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {ramenCategories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
+                          <SelectItem key={category.value} value={category.value}>
+                            {category.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -906,6 +1049,81 @@ export default function NewReviewPage() {
           </CardContent>
         </Card>
 
+        {/* 最寄り駅選擇 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>最寄り駅（電車站）</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLoadingStations ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                  <p className="text-sm text-muted-foreground">搜尋附近電車站中...</p>
+                </div>
+              ) : nearestStations.length > 0 ? (
+                <div className="space-y-2">
+                  <Label>選擇最近的電車站（徒步20分鐘內）</Label>
+                  <div className="grid gap-2">
+                    {nearestStations.map((station) => (
+                      <div
+                        key={station.placeId}
+                        className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                          selectedStation?.placeId === station.placeId
+                            ? "border-primary bg-primary/5"
+                            : "border-muted hover:border-muted-foreground/50"
+                        }`}
+                        onClick={() => setSelectedStation({
+                          placeId: station.placeId,
+                          name: station.name,
+                          walkingTime: station.walkingTime || 0,
+                        })}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">{station.name}</p>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {station.address}
+                            </p>
+                          </div>
+                          {station.walkingTime && (
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-primary">
+                                徒步{station.walkingTime}分鐘
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedStation && (
+                    <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-sm">
+                        <span className="font-medium">已選擇：</span>
+                        {selectedStation.name} 
+                        <span className="text-primary ml-2">
+                          （徒步{selectedStation.walkingTime}分鐘）
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : restaurant?.googleId ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>找不到徒步20分鐘內的電車站</p>
+                  <p className="text-sm">可能此地點較為偏遠或無鐵道交通</p>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>無法載入車站資訊</p>
+                  <p className="text-sm">餐廳缺少位置資訊</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* 文字評價 */}
         <Card>
           <CardHeader>
@@ -954,5 +1172,22 @@ export default function NewReviewPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NewReviewPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-6 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>載入中...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <NewReviewPageContent />
+    </Suspense>
   );
 }

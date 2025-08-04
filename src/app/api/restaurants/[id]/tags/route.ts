@@ -4,10 +4,10 @@ import { type NextRequest, NextResponse } from "next/server";
 // GET /api/restaurants/[id]/tags - 取得餐廳的推薦標籤
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // 檢查餐廳是否存在
     const restaurant = await prisma.restaurant.findUnique({

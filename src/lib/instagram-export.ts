@@ -198,7 +198,7 @@ export function generateInstagramPost(reviewData: InstagramReviewData): string {
 點餐💁：${orderMethodText}・(${paymentText})${customizations ? `\n客製🆓：${customizations}` : ""}
 ・････━━━━━━━━━━━････・
 
-"${reviewData.textReview}"
+${reviewData.textReview}
 
 ・････━━━━━━━━━━━････・
 🗾：${restaurant.address}

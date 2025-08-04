@@ -10,150 +10,155 @@ datasource db {
 
 // 餐廳店家
 model Restaurant {
-  id          String @id @default(cuid())
-  name        String // 店名
-  prefecture  String // 都道府縣  
-  city        String // 市區町村
-  postalCode  String // 郵遞區號（7碼）
-  address     String // 完整地址（不含郵遞區號，標準化格式）
-  googleId    String? @unique // Google Places ID
-  
+  id         String  @id @default(cuid())
+  name       String // 店名
+  prefecture String // 都道府縣  
+  city       String // 市區町村
+  postalCode String // 郵遞區號（7碼）
+  address    String // 完整地址（不含郵遞區號，標準化格式）
+  googleId   String? @unique // Google Places ID
+
   // 關聯評價
-  reviews     Review[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  reviews Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("restaurants")
 }
 
 // 評價記錄
 model Review {
-  id            String @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // 關聯餐廳
-  restaurantId  String
-  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
   // 造訪詳細資料
-  visitDate     DateTime // 造訪日期
-  visitTime     String   // 造訪時間
-  partySize     Int      // 用餐人數
+  visitDate         DateTime // 造訪日期
+  visitTime         String // 造訪時間
+  partySize         Int // 用餐人數
   reservationStatus String // 預約狀態：無需排隊、排隊等候、事前預約、記名制
-  waitTime      Int?     // 等待時間（分鐘）
-  
+  waitTime          Int? // 等待時間（分鐘）
+
   // 點餐細節
-  orderMethod   String   // 點餐方式
-  paymentMethod String   // 付款方式
-  
+  orderMethod   String // 點餐方式
+  paymentMethod String // 付款方式
+
   // 拉麵品項（1-5個）
-  ramenItems    RamenItem[]
-  
+  ramenItems RamenItem[]
+
   // 副餐（0-10個）
-  sideItems     SideItem[]
-  
+  sideItems SideItem[]
+
   // 標籤
-  tags          Tag[]
-  
+  tags Tag[]
+
   // 文字評價
-  textReview    String   // 文字評價內容
-  
+  textReview String // 文字評價內容
+
+  // 最寄り駅資訊
+  nearestStation String? // 最近車站名稱
+  walkingTime    Int? // 徒步時間（分鐘）
+  stationPlaceId String? // 車站的Google Place ID
+
   // 照片
-  photos        Photo[]
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  photos Photo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("reviews")
 }
 
 // 拉麵品項
 model RamenItem {
-  id            String @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // 關聯評價
-  reviewId      String
-  review        Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  
+  reviewId String
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
   name          String // 品項名稱
-  price         Int    // 價格
+  price         Int // 價格
   category      RamenCategory // 拉麵分類
   customization String? // 客製化設定
-  
+
   @@map("ramen_items")
 }
 
 // 副餐品項
 model SideItem {
-  id        String @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // 關聯評價
-  reviewId  String
-  review    Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  
-  name      String // 品項名稱
-  price     Int    // 價格
-  
+  reviewId String
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  name  String // 品項名稱
+  price Int // 價格
+
   @@map("side_items")
 }
 
 // 標籤
 model Tag {
-  id       String @id @default(cuid())
-  name     String @unique // 標籤名稱
-  
+  id   String @id @default(cuid())
+  name String @unique // 標籤名稱
+
   // 關聯評價
-  reviews  Review[]
-  
+  reviews Review[]
+
   @@map("tags")
 }
 
 // 照片
 model Photo {
-  id        String @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // 關聯評價
-  reviewId  String
-  review    Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  
-  filename  String // 檔案名稱
-  path      String // 檔案路徑
-  category  PhotoCategory // 照片分類
-  size      Int    // 檔案大小（bytes）
-  
+  reviewId String
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  filename String // 檔案名稱
+  path     String // 檔案路徑
+  category PhotoCategory // 照片分類
+  size     Int // 檔案大小（bytes）
+
   createdAt DateTime @default(now())
-  
+
   @@map("photos")
 }
 
 // 拉麵分類枚舉
 enum RamenCategory {
-  SHOYU     // 醬油拉麵
-  SHIO      // 鹽味拉麵
-  MISO      // 味噌拉麵
-  TONKOTSU  // 豚骨拉麵
-  CHICKEN   // 雞白湯拉麵
-  NIBOSHI   // 煮干拉麵
-  GYOKAI    // 魚介拉麵
-  IEKEI     // 家系拉麵
-  JIRO      // 二郎系拉麵
-  TSUKEMEN  // 沾麵
+  SHOYU // 醬油拉麵
+  SHIO // 鹽味拉麵
+  MISO // 味噌拉麵
+  TONKOTSU // 豚骨拉麵
+  CHICKEN // 雞白湯拉麵
+  NIBOSHI // 煮干拉麵
+  GYOKAI // 魚介拉麵
+  IEKEI // 家系拉麵
+  JIRO // 二郎系拉麵
+  TSUKEMEN // 沾麵
   TANTANMEN // 擔擔麵
-  MAZESOBA  // 油拌麵
-  HIYASHI   // 冷麵
-  OTHER     // 其他
-  
+  MAZESOBA // 油拌麵
+  HIYASHI // 冷麵
+  OTHER // 其他
+
   @@map("ramen_category")
 }
 
 // 照片分類枚舉
 enum PhotoCategory {
-  RAMEN     // 拉麵
-  SIDE      // 副餐
-  EXTERIOR  // 店面外觀
-  INTERIOR  // 店內環境
-  MENU      // 菜單
-  OTHER     // 其他
-  
+  RAMEN // 拉麵
+  SIDE // 副餐
+  EXTERIOR // 店面外觀
+  INTERIOR // 店內環境
+  MENU // 菜單
+  OTHER // 其他
+
   @@map("photo_category")
 }

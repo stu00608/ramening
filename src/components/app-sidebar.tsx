@@ -20,13 +20,8 @@ import { ThemeToggle } from "./theme-toggle";
 
 const menuItems = [
   {
-    title: "搜尋拉麵店",
-    url: "/search",
-    icon: Search,
-  },
-  {
     title: "建立評價",
-    url: "/reviews/new",
+    url: "/search",
     icon: Plus,
   },
   {

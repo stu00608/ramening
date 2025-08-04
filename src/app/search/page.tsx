@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, MapPin, Phone, Search, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Restaurant {
   googleId: string;
@@ -22,6 +23,8 @@ interface Restaurant {
   };
   rating?: number;
   userRatingsTotal?: number;
+  phoneNumber?: string;
+  openingHours?: string[];
   photos?: Array<{
     reference: string;
     width: number;
@@ -31,6 +34,7 @@ interface Restaurant {
 
 export default function SearchPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,8 +78,19 @@ export default function SearchPage() {
 
   const handleSelectRestaurant = async (restaurant: Restaurant) => {
     try {
-      // 先嘗試建立或取得餐廳
-      const response = await fetch("/api/restaurants", {
+      // 先檢查餐廳是否已存在
+      const checkResponse = await fetch(`/api/restaurants?googleId=${encodeURIComponent(restaurant.googleId)}`);
+      const checkData = await checkResponse.json();
+      
+      if (checkResponse.ok && checkData.restaurants && checkData.restaurants.length > 0) {
+        // 餐廳已存在，直接導向評價建立頁面
+        const existingRestaurant = checkData.restaurants[0];
+        router.push(`/reviews/new?restaurantId=${existingRestaurant.id}`);
+        return;
+      }
+      
+      // 餐廳不存在，建立新餐廳
+      const createResponse = await fetch("/api/restaurants", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -90,29 +105,26 @@ export default function SearchPage() {
         }),
       });
 
-      const data = await response.json();
+      const createData = await createResponse.json();
       
-      if (response.ok && data.success && data.restaurant) {
+      if (createResponse.ok && createData.id) {
         // 成功建立新餐廳，導向評價建立頁面
-        router.push(`/reviews/new?restaurantId=${data.restaurant.id}`);
-      } else if (response.status === 409 && data.error === "此餐廳已存在") {
-        // 餐廳已存在，先取得餐廳ID
-        const existingResponse = await fetch(`/api/restaurants?googleId=${encodeURIComponent(restaurant.googleId)}`);
-        const existingData = await existingResponse.json();
-        
-        if (existingData.restaurants && existingData.restaurants.length > 0) {
-          const existingRestaurant = existingData.restaurants[0];
-          router.push(`/reviews/new?restaurantId=${existingRestaurant.id}`);
-        } else {
-          alert("無法找到餐廳資料，請重試");
-        }
+        router.push(`/reviews/new?restaurantId=${createData.id}`);
       } else {
-        console.error("處理餐廳資料失敗:", data.error || "未知錯誤");
-        alert(`處理餐廳資料失敗：${data.error || "未知錯誤"}，請重試`);
+        console.error("建立餐廳失敗:", createData.error || "未知錯誤");
+        toast({
+          title: "建立餐廳失敗",
+          description: createData.error || "未知錯誤，請重試",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("選擇餐廳錯誤:", error);
-      alert("選擇餐廳時發生錯誤，請重試");
+      toast({
+        title: "選擇餐廳失敗",
+        description: "選擇餐廳時發生錯誤，請重試",
+        variant: "destructive",
+      });
     }
   };
 

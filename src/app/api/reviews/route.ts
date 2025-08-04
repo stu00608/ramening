@@ -32,7 +32,7 @@ const CreateReviewSchema = z.object({
   visitTime: z.string().min(1, "造訪時間不能為空"),
   partySize: z.number().min(1, "用餐人數必須至少1人").max(15, "用餐人數過多"),
   reservationStatus: z.enum(["無需排隊", "排隊等候", "事前預約", "記名制"]),
-  waitTime: z.number().min(0).optional(),
+  waitTime: z.number().min(0).nullable().optional(),
   orderMethod: z.enum(["食券機", "注文制", "其他"]),
   paymentMethods: z
     .array(z.enum(["現金", "QR決済", "交通系IC", "信用卡"]))
@@ -45,9 +45,14 @@ const CreateReviewSchema = z.object({
   tags: z.array(z.string()).optional(),
   textReview: z
     .string()
-    .min(10, "評價內容至少需要10個字")
+    .min(1, "評價內容不能為空")
     .max(1000, "評價內容不能超過1000字"),
+  // 車站資訊
+  nearestStation: z.string().nullable().optional(),
+  walkingTime: z.number().min(0).max(60).nullable().optional(),
+  stationPlaceId: z.string().nullable().optional(),
   photos: z.array(PhotoSchema).optional(),
+  isDraft: z.boolean().optional(),
 });
 
 // 評價更新的驗證 schema
@@ -111,6 +116,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log("收到的評價資料:", JSON.stringify(body, null, 2));
 
     // 驗證輸入資料
     const validatedData = CreateReviewSchema.parse(body);
@@ -121,7 +127,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!restaurant) {
-      return NextResponse.json({ error: "找不到指定的餐廳" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "找不到指定的餐廳" }, { status: 404 });
     }
 
     // 驗證預約狀態和等待時間的邏輯
@@ -130,7 +136,7 @@ export async function POST(request: NextRequest) {
       !validatedData.waitTime
     ) {
       return NextResponse.json(
-        { error: "選擇排隊等候時必須填寫等待時間" },
+        { success: false, error: "選擇排隊等候時必須填寫等待時間" },
         { status: 400 }
       );
     }
@@ -148,6 +154,10 @@ export async function POST(request: NextRequest) {
           orderMethod: validatedData.orderMethod,
           paymentMethod: validatedData.paymentMethods.join(", "),
           textReview: validatedData.textReview,
+          // 車站資訊
+          nearestStation: validatedData.nearestStation,
+          walkingTime: validatedData.walkingTime,
+          stationPlaceId: validatedData.stationPlaceId,
         },
       });
 
@@ -220,16 +230,19 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(completeReview, { status: 201 });
+    return NextResponse.json({ 
+      success: true, 
+      review: completeReview 
+    }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "資料驗證失敗", details: error.issues },
+        { success: false, error: "資料驗證失敗", details: error.issues },
         { status: 400 }
       );
     }
 
     console.error("建立評價失敗:", error);
-    return NextResponse.json({ error: "建立評價失敗" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "建立評價失敗" }, { status: 500 });
   }
 }

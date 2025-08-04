@@ -7,8 +7,10 @@ import { NextRequest } from "next/server";
  * @returns NextRequest 物件
  */
 export function createRequest(url: string, options: RequestInit = {}) {
+  // 過濾掉可能導致類型錯誤的屬性
+  const { signal, ...safeOptions } = options;
   return new NextRequest(url, {
     method: "GET",
-    ...options,
+    ...safeOptions,
   });
 }
