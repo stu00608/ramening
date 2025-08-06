@@ -480,7 +480,6 @@ const MultipleSelector = React.forwardRef<
             }
           }}
           tabIndex={disabled ? -1 : 0}
-          role="button"
           aria-label="點擊以選擇選項"
         >
           <div className="relative flex flex-wrap gap-1">

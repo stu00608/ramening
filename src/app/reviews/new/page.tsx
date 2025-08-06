@@ -21,11 +21,20 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TimePicker } from "@/components/ui/time-picker";
+import {
+  FORM_OPTIONS,
+  LIMITS,
+  PHOTO_CATEGORIES,
+  PHOTO_CATEGORY_MAPPING,
+  RAMEN_CATEGORIES,
+  SEARCH_PARAMS,
+  TOAST_MESSAGES,
+} from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, Minus, Plus, Upload, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 // 類型定義
@@ -39,51 +48,8 @@ interface ErrorDetail {
   message: string;
 }
 
-// 拉麵分類選項
-const ramenCategories = [
-  { label: "醬油拉麵", value: "SHOYU" },
-  { label: "鹽味拉麵", value: "SHIO" },
-  { label: "味噌拉麵", value: "MISO" },
-  { label: "豚骨拉麵", value: "TONKOTSU" },
-  { label: "雞白湯拉麵", value: "CHICKEN" },
-  { label: "煮干拉麵", value: "NIBOSHI" },
-  { label: "魚介拉麵", value: "GYOKAI" },
-  { label: "家系拉麵", value: "IEKEI" },
-  { label: "二郎系拉麵", value: "JIRO" },
-  { label: "沾麵", value: "TSUKEMEN" },
-  { label: "擔擔麵", value: "TANTANMEN" },
-  { label: "油拌麵", value: "MAZESOBA" },
-  { label: "冷麵", value: "HIYASHI" },
-  { label: "其他", value: "OTHER" },
-];
-
-// 付款方式選項
-const paymentMethods: Option[] = [
-  { value: "現金", label: "現金" },
-  { value: "QR決済", label: "QR決済" },
-  { value: "交通系IC", label: "交通系IC" },
-  { value: "信用卡", label: "信用卡" },
-];
-
-// 照片分類選項
-const photoCategories = [
-  "拉麵",
-  "副餐",
-  "店內環境",
-  "店家外觀",
-  "菜單",
-  "其他",
-];
-
-// 照片分類中文到英文的映射
-const photoCategoryMapping: Record<string, string> = {
-  拉麵: "RAMEN",
-  副餐: "SIDE",
-  店內環境: "INTERIOR",
-  店家外觀: "EXTERIOR",
-  菜單: "MENU",
-  其他: "OTHER",
-};
+// 付款方式選項  
+const paymentMethods: Option[] = [...FORM_OPTIONS.PAYMENT_METHODS];
 
 // 推薦標籤現在從餐廳歷史評價中動態載入
 
@@ -177,16 +143,16 @@ function NewReviewPageContent() {
           if (restaurant?.id) {
             setRestaurant(restaurant);
           } else {
-            toast.error("餐廳不存在: 找不到指定的餐廳");
+            toast.error(TOAST_MESSAGES.ERROR.RESTAURANT_NOT_FOUND);
             router.push("/search");
           }
         } else {
-          toast.error("載入失敗: 載入餐廳資訊失敗");
+          toast.error(TOAST_MESSAGES.ERROR.LOAD_RESTAURANT_FAILED);
           router.push("/search");
         }
       } catch (error) {
         console.error("載入餐廳資訊錯誤:", error);
-        toast.error("發生錯誤: 載入餐廳資訊時發生錯誤");
+        toast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
         router.push("/search");
       } finally {
         setIsLoadingRestaurant(false);
@@ -244,7 +210,7 @@ function NewReviewPageContent() {
 
           // 搜尋附近的車站
           const stationsResponse = await fetch(
-            `/api/stations/search?lat=${location.lat}&lng=${location.lng}&radius=1500`
+            `/api/stations/search?lat=${location.lat}&lng=${location.lng}&radius=${SEARCH_PARAMS.STATION_SEARCH_RADIUS}`
           );
 
           if (!stationsResponse.ok) {
@@ -254,33 +220,47 @@ function NewReviewPageContent() {
           const stationsData = await stationsResponse.json();
           const stations = stationsData.stations || [];
 
-          // 計算每個車站的徒步時間
-          const stationsWithWalkingTime = await Promise.all(
-            stations.map(async (station: Station) => {
-              try {
-                const walkingResponse = await fetch(
-                  `/api/directions/walking?originPlaceId=${restaurant.googleId}&destinationPlaceId=${station.placeId}`
-                );
+          // 限制併發請求數量，避免API限制
+          const BATCH_SIZE = 3;
+          const stationsWithWalkingTime = [];
 
-                if (walkingResponse.ok) {
-                  const walkingData = await walkingResponse.json();
-                  return {
-                    ...station,
-                    walkingTime: walkingData.duration.minutes,
-                  };
+          for (let i = 0; i < stations.length; i += BATCH_SIZE) {
+            const batch = stations.slice(i, i + BATCH_SIZE);
+            const batchResults = await Promise.all(
+              batch.map(async (station: Station) => {
+                try {
+                  const walkingResponse = await fetch(
+                    `/api/directions/walking?originPlaceId=${restaurant.googleId}&destinationPlaceId=${station.placeId}`
+                  );
+
+                  if (walkingResponse.ok) {
+                    const walkingData = await walkingResponse.json();
+                    return {
+                      ...station,
+                      walkingTime: walkingData.duration.minutes,
+                    };
+                  }
+                  return station;
+                } catch (error) {
+                  console.error(`計算到${station.name}的徒步時間失敗:`, error);
+                  return station;
                 }
-                return station;
-              } catch (error) {
-                console.error(`計算到${station.name}的徒步時間失敗:`, error);
-                return station;
-              }
-            })
-          );
+              })
+            );
+            stationsWithWalkingTime.push(...batchResults);
 
-          // 過濾出20分鐘內的車站並排序
+            // 避免API速率限制
+            if (i + BATCH_SIZE < stations.length) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+          }
+
+          // 過濾出指定時間內的車站並排序
           const nearbyStations = stationsWithWalkingTime
             .filter(
-              (station) => station.walkingTime && station.walkingTime <= 20
+              (station) =>
+                station.walkingTime &&
+                station.walkingTime <= LIMITS.MAX_WALKING_TIME
             )
             .sort((a, b) => (a.walkingTime || 999) - (b.walkingTime || 999));
 
@@ -298,13 +278,13 @@ function NewReviewPageContent() {
   }, [restaurant?.googleId]);
 
   const addRamenItem = () => {
-    if (ramenItems.length < 5) {
+    if (ramenItems.length < LIMITS.MAX_RAMEN_ITEMS) {
       setRamenItems([...ramenItems, { name: "", price: 0, category: "" }]);
     }
   };
 
   const removeRamenItem = (index: number) => {
-    if (ramenItems.length > 1) {
+    if (ramenItems.length > LIMITS.MIN_RAMEN_ITEMS) {
       setRamenItems(ramenItems.filter((_, i) => i !== index));
     }
   };
@@ -320,7 +300,7 @@ function NewReviewPageContent() {
   };
 
   const addSideItem = () => {
-    if (sideItems.length < 10) {
+    if (sideItems.length < LIMITS.MAX_SIDE_ITEMS) {
       setSideItems([...sideItems, { name: "", price: 0 }]);
     }
   };
@@ -340,11 +320,18 @@ function NewReviewPageContent() {
   };
 
   const processFileForCrop = (file: File) => {
-    if (file.size <= 5 * 1024 * 1024 && photos.length < 10) {
-      // 5MB 限制，最多10張照片
-      setFileToProcess(file);
-      setCropModalOpen(true);
+    if (file.size > LIMITS.MAX_FILE_SIZE) {
+      toast.error(TOAST_MESSAGES.ERROR.FILE_TOO_LARGE);
+      return;
     }
+
+    if (photos.length >= LIMITS.MAX_PHOTOS) {
+      toast.error(TOAST_MESSAGES.ERROR.TOO_MANY_PHOTOS);
+      return;
+    }
+
+    setFileToProcess(file);
+    setCropModalOpen(true);
   };
 
   const handlePhotoUpload = (files: FileList | File[]) => {
@@ -465,7 +452,7 @@ function NewReviewPageContent() {
       photos: photos.map((photo) => ({
         filename: photo.file.name,
         path: `/uploads/${photo.file.name}`, // 假設照片會儲存在 uploads 目錄
-        category: photoCategoryMapping[photo.category] || "OTHER",
+        category: PHOTO_CATEGORY_MAPPING[photo.category] || "OTHER",
         size: photo.file.size,
       })),
       isDraft,
@@ -775,7 +762,7 @@ function NewReviewPageContent() {
                         <SelectValue placeholder="選擇分類" />
                       </SelectTrigger>
                       <SelectContent>
-                        {ramenCategories.map((category) => (
+                        {RAMEN_CATEGORIES.map((category) => (
                           <SelectItem
                             key={category.value}
                             value={category.value}
@@ -922,7 +909,9 @@ function NewReviewPageContent() {
                     點擊或拖拽照片到此區域
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    支援 JPG、PNG 格式，單檔最大 5MB，最多 10 張
+                    支援 JPG、PNG 格式，單檔最大{" "}
+                    {LIMITS.MAX_FILE_SIZE / 1024 / 1024}MB，最多{" "}
+                    {LIMITS.MAX_PHOTOS} 張
                   </p>
                 </div>
               </button>
@@ -969,7 +958,7 @@ function NewReviewPageContent() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {photoCategories.map((category) => (
+                              {PHOTO_CATEGORIES.map((category) => (
                                 <SelectItem key={category} value={category}>
                                   {category}
                                 </SelectItem>
@@ -1057,7 +1046,9 @@ function NewReviewPageContent() {
                 </div>
               ) : nearestStations.length > 0 ? (
                 <div className="space-y-2">
-                  <Label>選擇最近的電車站（徒步20分鐘內）</Label>
+                  <Label>
+                    選擇最近的電車站（徒步{LIMITS.MAX_WALKING_TIME}分鐘內）
+                  </Label>
                   <div className="grid gap-2">
                     {nearestStations.map((station) => (
                       <button
@@ -1098,7 +1089,7 @@ function NewReviewPageContent() {
                 </div>
               ) : restaurant?.googleId ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p>找不到徒步20分鐘內的電車站</p>
+                  <p>找不到徒步{LIMITS.MAX_WALKING_TIME}分鐘內的電車站</p>
                   <p className="text-sm">可能此地點較為偏遠或無鐵道交通</p>
                 </div>
               ) : (
@@ -1123,11 +1114,13 @@ function NewReviewPageContent() {
                 onChange={(e) => setTextReview(e.target.value)}
                 placeholder="分享您的拉麵體驗..."
                 className="min-h-32"
-                maxLength={1000}
+                maxLength={LIMITS.MAX_TEXT_LENGTH}
               />
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>* 必填欄位</span>
-                <span>{textReview.length}/1000 字</span>
+                <span>
+                  {textReview.length}/{LIMITS.MAX_TEXT_LENGTH} 字
+                </span>
               </div>
             </div>
           </CardContent>

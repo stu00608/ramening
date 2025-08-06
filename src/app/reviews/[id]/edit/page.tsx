@@ -1260,10 +1260,10 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
       {/* 照片裁切 Modal */}
       {cropModalOpen && currentPhotoIndex !== null && (
         <PhotoCropModal
-          photo={photos[currentPhotoIndex]}
+          file={photos[currentPhotoIndex]?.file || null}
           open={cropModalOpen}
           onOpenChange={setCropModalOpen}
-          onCropComplete={(croppedFile) => {
+          onCropComplete={(croppedFile, category) => {
             const updated = [...photos];
             updated[currentPhotoIndex].file = croppedFile;
             setPhotos(updated);

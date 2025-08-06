@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DEFAULT_RATING, TOAST_MESSAGES } from "@/lib/constants";
 import type { Review } from "@/types/review";
 import {
   Calendar,
@@ -89,41 +90,46 @@ interface DatabaseReview {
 
 // 轉換資料庫資料為前端 Review 格式
 const convertDatabaseReview = (dbReview: DatabaseReview): Review => {
+  // 型別安全檢查
+  if (!dbReview?.id || !dbReview?.restaurant) {
+    throw new Error("無效的資料庫評價資料");
+  }
+
   return {
     id: dbReview.id,
-    restaurantName: dbReview.restaurant.name,
+    restaurantName: dbReview.restaurant.name || "未知餐廳",
     visitDate: new Date(dbReview.visitDate).toISOString().split("T")[0],
-    visitTime: dbReview.visitTime,
-    rating: 4.5, // 暫時固定值，因為資料庫中還沒有評分欄位
-    ramenItems: dbReview.ramenItems.map((item) => ({
-      name: item.name,
-      price: item.price,
-      customization: item.customization || "",
+    visitTime: dbReview.visitTime || "",
+    rating: DEFAULT_RATING, // 未來會改為用戶輸入
+    ramenItems: (dbReview.ramenItems || []).map((item) => ({
+      name: item?.name || "",
+      price: item?.price || 0,
+      customization: item?.customization || "",
     })),
-    sideItems: dbReview.sideItems.map((item) => ({
-      name: item.name,
-      price: item.price,
+    sideItems: (dbReview.sideItems || []).map((item) => ({
+      name: item?.name || "",
+      price: item?.price || 0,
     })),
-    tags: dbReview.tags.map((tag) => tag.name),
-    address: dbReview.restaurant.address.startsWith(
-      dbReview.restaurant.prefecture
+    tags: (dbReview.tags || []).map((tag) => tag?.name || ""),
+    address: dbReview.restaurant.address?.startsWith(
+      dbReview.restaurant.prefecture || ""
     )
       ? dbReview.restaurant.address
-      : `${dbReview.restaurant.prefecture}${dbReview.restaurant.city}${dbReview.restaurant.address}`,
-    photos: dbReview.photos.map((photo) => ({
-      url: `/uploads/${photo.filename}`, // 假設照片存放在 uploads 目錄
-      category: photo.category,
-      description: photo.filename,
+      : `${dbReview.restaurant.prefecture || ""}${dbReview.restaurant.city || ""}${dbReview.restaurant.address || ""}`,
+    photos: (dbReview.photos || []).map((photo) => ({
+      url: `/uploads/${photo?.filename || ""}`,
+      category: photo?.category || "OTHER",
+      description: photo?.filename || "",
     })),
-    textReview: dbReview.textReview,
-    createdAt: dbReview.createdAt,
-    guestCount: dbReview.partySize.toString(),
-    reservationStatus: dbReview.reservationStatus,
+    textReview: dbReview.textReview || "",
+    createdAt: dbReview.createdAt || "",
+    guestCount: (dbReview.partySize || 1).toString(),
+    reservationStatus: dbReview.reservationStatus || "",
     waitTime: dbReview.waitTime ? `${dbReview.waitTime}分鐘` : undefined,
-    orderMethod: dbReview.orderMethod,
-    paymentMethods: dbReview.paymentMethod.split(", "),
-    nearestStation: dbReview.nearestStation,
-    walkingTime: dbReview.walkingTime?.toString(),
+    orderMethod: dbReview.orderMethod || "",
+    paymentMethods: (dbReview.paymentMethod || "").split(", ").filter(Boolean),
+    nearestStation: dbReview.nearestStation || undefined,
+    walkingTime: dbReview.walkingTime?.toString() || undefined,
   };
 };
 
@@ -150,16 +156,22 @@ export default function ReviewsPage() {
       const data = await response.json();
 
       if (data.reviews && Array.isArray(data.reviews)) {
-        const convertedReviews = data.reviews.map((dbReview: DatabaseReview) =>
-          convertDatabaseReview(dbReview)
-        );
-        setReviews(convertedReviews);
+        try {
+          const convertedReviews = data.reviews
+            .filter((dbReview: DatabaseReview) => dbReview?.id) // 過濾無效資料
+            .map((dbReview: DatabaseReview) => convertDatabaseReview(dbReview));
+          setReviews(convertedReviews);
+        } catch (error) {
+          console.error("轉換評價資料錯誤:", error);
+          toast.error(TOAST_MESSAGES.ERROR.LOAD_REVIEWS_FAILED);
+          setReviews([]);
+        }
       } else {
         setReviews([]);
       }
     } catch (error) {
       console.error("載入評價錯誤:", error);
-      toast.error("載入評價失敗: 無法載入評價資料，請重試");
+      toast.error(TOAST_MESSAGES.ERROR.LOAD_REVIEWS_FAILED);
       setReviews([]);
     } finally {
       setIsLoading(false);
@@ -234,10 +246,10 @@ export default function ReviewsPage() {
 
       // 成功刪除後從列表中移除
       setReviews(reviews.filter((review) => review.id !== reviewToDelete));
-      toast.success("刪除成功: 評價已成功刪除");
+      toast.success(TOAST_MESSAGES.SUCCESS.REVIEW_DELETED);
     } catch (error) {
       console.error("刪除評價錯誤:", error);
-      toast.error("刪除失敗: 無法刪除評價，請重試");
+      toast.error(TOAST_MESSAGES.ERROR.DELETE_REVIEW_FAILED);
     } finally {
       setDeleteDialogOpen(false);
       setReviewToDelete(null);

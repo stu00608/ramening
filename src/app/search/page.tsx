@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SEARCH_PARAMS, TOAST_MESSAGES } from "@/lib/constants";
 import { Clock, MapPin, Phone, Search, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -49,7 +50,7 @@ export default function SearchPage() {
     try {
       // 使用 Google Places API 搜尋
       const response = await fetch(
-        `/api/places/search?query=${encodeURIComponent(searchTerm)}&lat=35.6762&lng=139.6503&radius=10000`
+        `/api/places/search?query=${encodeURIComponent(searchTerm)}&lat=${SEARCH_PARAMS.DEFAULT_LAT}&lng=${SEARCH_PARAMS.DEFAULT_LNG}&radius=${SEARCH_PARAMS.DEFAULT_RADIUS}`
       );
 
       if (!response.ok) {
@@ -117,11 +118,13 @@ export default function SearchPage() {
         router.push(`/reviews/new?restaurantId=${createData.id}`);
       } else {
         console.error("建立餐廳失敗:", createData.error || "未知錯誤");
-        toast.error(`建立餐廳失敗: ${createData.error || "未知錯誤，請重試"}`);
+        toast.error(
+          `建立餐廳失敗: ${createData.error || TOAST_MESSAGES.ERROR.NETWORK_ERROR}`
+        );
       }
     } catch (error) {
       console.error("選擇餐廳錯誤:", error);
-      toast.error("選擇餐廳失敗: 選擇餐廳時發生錯誤，請重試");
+      toast.error(`選擇餐廳失敗: ${TOAST_MESSAGES.ERROR.NETWORK_ERROR}`);
     }
   };
 
