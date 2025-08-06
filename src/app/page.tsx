@@ -83,7 +83,7 @@ export default function HomePage() {
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <Link href="/export">匯出貼文</Link>
+              <Link href="/reviews">匯出貼文</Link>
             </Button>
           </CardContent>
         </Card>

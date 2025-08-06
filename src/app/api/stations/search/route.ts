@@ -67,9 +67,12 @@ export async function GET(request: NextRequest) {
 
     if (data.status !== "OK") {
       console.error("Google Places API 錯誤:", data.error_message);
-      
+
       // 如果是計費或API金鑰問題，使用mock資料
-      if (data.error_message?.includes("Billing") || data.error_message?.includes("API key")) {
+      if (
+        data.error_message?.includes("Billing") ||
+        data.error_message?.includes("API key")
+      ) {
         console.warn("Google Places API 不可用，使用 mock 資料");
         const mockStations = [
           {
@@ -83,7 +86,7 @@ export async function GET(request: NextRequest) {
             types: ["train_station", "subway_station", "establishment"],
           },
           {
-            placeId: "mock_station_2", 
+            placeId: "mock_station_2",
             name: "表参道駅",
             address: "東京都港区北青山3丁目",
             location: {
@@ -101,16 +104,16 @@ export async function GET(request: NextRequest) {
               lng: validatedData.lng - 0.002,
             },
             types: ["train_station", "establishment"],
-          }
+          },
         ];
-        
+
         return NextResponse.json({
           stations: mockStations,
           total: mockStations.length,
-          note: "使用模擬資料（Google Places API 暫時不可用）"
+          note: "使用模擬資料（Google Places API 暫時不可用）",
         });
       }
-      
+
       return NextResponse.json(
         { error: "Google Places API 搜尋失敗", details: data.error_message },
         { status: 500 }
@@ -125,10 +128,11 @@ export async function GET(request: NextRequest) {
         // 可以包含 subway_station（地鐵也是電車的一種）
         const hasSubwayStation = place.types.includes("subway_station");
         // 排除純粹的公車站
-        const isBusStation = place.types.includes("bus_station") && 
-                           !hasTrainStation && 
-                           !hasSubwayStation;
-        
+        const isBusStation =
+          place.types.includes("bus_station") &&
+          !hasTrainStation &&
+          !hasSubwayStation;
+
         return (hasTrainStation || hasSubwayStation) && !isBusStation;
       })
       .map((place) => ({
@@ -145,13 +149,16 @@ export async function GET(request: NextRequest) {
       }));
 
     // 去除重複的車站名稱（保留最近的一個）
-    const uniqueStations = stations.reduce((acc, station) => {
-      const existing = acc.find(s => s.name === station.name);
-      if (!existing) {
-        acc.push(station);
-      }
-      return acc;
-    }, [] as typeof stations);
+    const uniqueStations = stations.reduce(
+      (acc, station) => {
+        const existing = acc.find((s) => s.name === station.name);
+        if (!existing) {
+          acc.push(station);
+        }
+        return acc;
+      },
+      [] as typeof stations
+    );
 
     return NextResponse.json({
       stations: uniqueStations,

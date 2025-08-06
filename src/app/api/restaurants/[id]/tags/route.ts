@@ -35,11 +35,11 @@ export async function GET(
 
     // 統計標籤使用頻率
     const tagCounts = new Map<string, number>();
-    reviews.forEach((review) => {
-      review.tags.forEach((tag) => {
+    for (const review of reviews) {
+      for (const tag of review.tags) {
         tagCounts.set(tag.name, (tagCounts.get(tag.name) || 0) + 1);
-      });
-    });
+      }
+    }
 
     // 按使用頻率排序並返回前10個標籤
     const sortedTags = Array.from(tagCounts.entries())

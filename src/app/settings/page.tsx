@@ -1,18 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,21 +12,33 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  Settings,
-  User,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import {
   CreditCard,
-  MapPin,
   Download,
-  Upload,
-  Trash2,
-  Info,
   Eye,
   EyeOff,
+  Info,
+  MapPin,
+  Settings,
+  Trash2,
+  Upload,
+  User,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { toast } from "sonner";
 
 interface UserSettings {
   // 預設設定
@@ -47,14 +47,14 @@ interface UserSettings {
   defaultPaymentMethods: string[];
   defaultSearchRadius: number;
   defaultSearchRegion: string;
-  
+
   // Google API 設定
   googlePlacesApiKey: string;
-  
+
   // 使用者偏好
   language: string;
   theme: string;
-  
+
   // 應用程式資訊
   appVersion: string;
 }
@@ -72,7 +72,6 @@ const defaultSettings: UserSettings = {
 };
 
 export default function SettingsPage() {
-  const { toast } = useToast();
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -83,7 +82,7 @@ export default function SettingsPage() {
     const loadSettings = () => {
       try {
         // 從 localStorage 載入設定，實際應用中可能會從後端 API 載入
-        const savedSettings = localStorage.getItem('ramening-settings');
+        const savedSettings = localStorage.getItem("ramening-settings");
         if (savedSettings) {
           const parsed = JSON.parse(savedSettings);
           setSettings({ ...defaultSettings, ...parsed });
@@ -93,39 +92,28 @@ export default function SettingsPage() {
           setSettings({ ...defaultSettings, googlePlacesApiKey: apiKey });
         }
       } catch (error) {
-        console.error('載入設定失敗:', error);
-        toast({
-          title: "載入設定失敗",
-          description: "使用預設設定",
-          variant: "destructive",
-        });
+        console.error("載入設定失敗:", error);
+        toast.error("載入設定失敗: 使用預設設定");
       } finally {
         setIsLoading(false);
       }
     };
 
     loadSettings();
-  }, [toast]);
+  }, []);
 
   // 儲存設定
   const saveSettings = async () => {
     try {
       setIsSaving(true);
-      
+
       // 儲存到 localStorage，實際應用中會發送到後端 API
-      localStorage.setItem('ramening-settings', JSON.stringify(settings));
-      
-      toast({
-        title: "設定已儲存",
-        description: "您的設定已成功更新",
-      });
+      localStorage.setItem("ramening-settings", JSON.stringify(settings));
+
+      toast.success("設定已儲存: 您的設定已成功更新");
     } catch (error) {
-      console.error('儲存設定失敗:', error);
-      toast({
-        title: "儲存失敗",
-        description: "無法儲存設定，請重試",
-        variant: "destructive",
-      });
+      console.error("儲存設定失敗:", error);
+      toast.error("儲存失敗: 無法儲存設定，請重試");
     } finally {
       setIsSaving(false);
     }
@@ -134,50 +122,40 @@ export default function SettingsPage() {
   // 重置設定
   const resetSettings = () => {
     setSettings(defaultSettings);
-    localStorage.removeItem('ramening-settings');
-    toast({
-      title: "設定已重置",
-      description: "所有設定已恢復為預設值",
-    });
+    localStorage.removeItem("ramening-settings");
+    toast.success("設定已重置: 所有設定已恢復為預設值");
   };
 
   // 匯出資料
   const exportData = async () => {
     try {
-      const response = await fetch('/api/reviews');
+      const response = await fetch("/api/reviews");
       const data = await response.json();
-      
+
       const exportData = {
         settings,
         reviews: data.reviews || [],
         exportDate: new Date().toISOString(),
         version: settings.appVersion,
       };
-      
+
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: 'application/json',
+        type: "application/json",
       });
-      
+
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `ramening-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `ramening-backup-${new Date().toISOString().split("T")[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      toast({
-        title: "匯出成功",
-        description: "資料已成功匯出到檔案",
-      });
+
+      toast.success("匯出成功: 資料已成功匯出到檔案");
     } catch (error) {
-      console.error('匯出失敗:', error);
-      toast({
-        title: "匯出失敗",
-        description: "無法匯出資料，請重試",
-        variant: "destructive",
-      });
+      console.error("匯出失敗:", error);
+      toast.error("匯出失敗: 無法匯出資料，請重試");
     }
   };
 
@@ -186,21 +164,14 @@ export default function SettingsPage() {
     try {
       // 這裡應該呼叫清除所有資料的 API
       // await fetch('/api/data/clear', { method: 'DELETE' });
-      
+
       localStorage.clear();
       setSettings(defaultSettings);
-      
-      toast({
-        title: "資料已清除",
-        description: "所有應用程式資料已被清除",
-      });
+
+      toast.success("資料已清除: 所有應用程式資料已被清除");
     } catch (error) {
-      console.error('清除資料失敗:', error);
-      toast({
-        title: "清除失敗",
-        description: "無法清除資料，請重試",
-        variant: "destructive",
-      });
+      console.error("清除資料失敗:", error);
+      toast.error("清除失敗: 無法清除資料，請重試");
     }
   };
 
@@ -232,9 +203,7 @@ export default function SettingsPage() {
     <div className="container mx-auto px-6 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">應用程式設定</h1>
-        <p className="text-muted-foreground">
-          自訂您的 Ramening 使用體驗
-        </p>
+        <p className="text-muted-foreground">自訂您的 Ramening 使用體驗</p>
       </div>
 
       <div className="space-y-6">
@@ -253,7 +222,10 @@ export default function SettingsPage() {
                 <Select
                   value={settings.defaultPartySize.toString()}
                   onValueChange={(value) =>
-                    setSettings({ ...settings, defaultPartySize: parseInt(value) })
+                    setSettings({
+                      ...settings,
+                      defaultPartySize: Number.parseInt(value),
+                    })
                   }
                 >
                   <SelectTrigger>
@@ -307,7 +279,9 @@ export default function SettingsPage() {
                         } else {
                           setSettings({
                             ...settings,
-                            defaultPaymentMethods: methods.filter((m) => m !== method),
+                            defaultPaymentMethods: methods.filter(
+                              (m) => m !== method
+                            ),
                           });
                         }
                       }}
@@ -337,7 +311,10 @@ export default function SettingsPage() {
                   type={showApiKey ? "text" : "password"}
                   value={settings.googlePlacesApiKey}
                   onChange={(e) =>
-                    setSettings({ ...settings, googlePlacesApiKey: e.target.value })
+                    setSettings({
+                      ...settings,
+                      googlePlacesApiKey: e.target.value,
+                    })
                   }
                   placeholder="輸入您的 Google Places API 金鑰"
                 />
@@ -346,7 +323,11 @@ export default function SettingsPage() {
                   size="icon"
                   onClick={() => setShowApiKey(!showApiKey)}
                 >
-                  {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showApiKey ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -360,7 +341,10 @@ export default function SettingsPage() {
                 <Select
                   value={settings.defaultSearchRadius.toString()}
                   onValueChange={(value) =>
-                    setSettings({ ...settings, defaultSearchRadius: parseInt(value) })
+                    setSettings({
+                      ...settings,
+                      defaultSearchRadius: Number.parseInt(value),
+                    })
                   }
                 >
                   <SelectTrigger>
@@ -461,7 +445,7 @@ export default function SettingsPage() {
 
               <Button
                 variant="outline"
-                onClick={() => document.getElementById('import-file')?.click()}
+                onClick={() => document.getElementById("import-file")?.click()}
                 className="flex items-center gap-2"
               >
                 <Upload className="h-4 w-4" />
@@ -483,17 +467,10 @@ export default function SettingsPage() {
                       const data = JSON.parse(event.target?.result as string);
                       if (data.settings) {
                         setSettings({ ...defaultSettings, ...data.settings });
-                        toast({
-                          title: "匯入成功",
-                          description: "設定已從檔案匯入",
-                        });
+                        toast.success("匯入成功: 設定已從檔案匯入");
                       }
                     } catch (error) {
-                      toast({
-                        title: "匯入失敗",
-                        description: "檔案格式不正確",
-                        variant: "destructive",
-                      });
+                      toast.error("匯入失敗: 檔案格式不正確");
                     }
                   };
                   reader.readAsText(file);
@@ -505,7 +482,7 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <h4 className="font-medium text-destructive">危險操作</h4>
-              
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -550,7 +527,9 @@ export default function SettingsPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Label className="text-sm font-medium">應用程式版本</Label>
-                <p className="text-sm text-muted-foreground">{settings.appVersion}</p>
+                <p className="text-sm text-muted-foreground">
+                  {settings.appVersion}
+                </p>
               </div>
 
               <div>
@@ -564,16 +543,9 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <Label className="text-sm font-medium">專案網址</Label>
+                <Label className="text-sm font-medium">專案資訊</Label>
                 <p className="text-sm text-muted-foreground">
-                  <a
-                    href="https://github.com/ramening/ramening"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700 underline"
-                  >
-                    GitHub Repository
-                  </a>
+                  本地端日本拉麵評價紀錄工具
                 </p>
               </div>
             </div>
@@ -594,7 +566,7 @@ export default function SettingsPage() {
           <Button onClick={saveSettings} disabled={isSaving}>
             {isSaving ? "儲存中..." : "儲存設定"}
           </Button>
-          
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline">重置設定</Button>

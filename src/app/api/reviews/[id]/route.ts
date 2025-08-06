@@ -85,7 +85,10 @@ export async function GET(
     });
 
     if (!review) {
-      return NextResponse.json({ success: false, error: "找不到指定的評價" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "找不到指定的評價" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ success: true, review });
@@ -156,7 +159,7 @@ export async function PUT(
         updateData.paymentMethod = validatedData.paymentMethods.join(", ");
       if (validatedData.textReview)
         updateData.textReview = validatedData.textReview;
-      
+
       // 車站資訊
       if (validatedData.nearestStation !== undefined)
         updateData.nearestStation = validatedData.nearestStation;
@@ -248,7 +251,10 @@ export async function PUT(
       }
 
       // 處理移除的照片
-      if (validatedData.removedPhotoIds && validatedData.removedPhotoIds.length > 0) {
+      if (
+        validatedData.removedPhotoIds &&
+        validatedData.removedPhotoIds.length > 0
+      ) {
         await tx.photo.deleteMany({
           where: {
             id: { in: validatedData.removedPhotoIds },

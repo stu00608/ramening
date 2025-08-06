@@ -127,7 +127,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!restaurant) {
-      return NextResponse.json({ success: false, error: "找不到指定的餐廳" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "找不到指定的餐廳" },
+        { status: 404 }
+      );
     }
 
     // 驗證預約狀態和等待時間的邏輯
@@ -230,10 +233,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      review: completeReview 
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        review: completeReview,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -243,6 +249,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.error("建立評價失敗:", error);
-    return NextResponse.json({ success: false, error: "建立評價失敗" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "建立評價失敗" },
+      { status: 500 }
+    );
   }
 }

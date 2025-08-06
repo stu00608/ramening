@@ -34,8 +34,8 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 // 用於轉換資料庫資料的介面
 interface DatabaseReview {
@@ -92,26 +92,28 @@ const convertDatabaseReview = (dbReview: DatabaseReview): Review => {
   return {
     id: dbReview.id,
     restaurantName: dbReview.restaurant.name,
-    visitDate: new Date(dbReview.visitDate).toISOString().split('T')[0],
+    visitDate: new Date(dbReview.visitDate).toISOString().split("T")[0],
     visitTime: dbReview.visitTime,
     rating: 4.5, // 暫時固定值，因為資料庫中還沒有評分欄位
-    ramenItems: dbReview.ramenItems.map(item => ({
+    ramenItems: dbReview.ramenItems.map((item) => ({
       name: item.name,
       price: item.price,
-      customization: item.customization || ''
+      customization: item.customization || "",
     })),
-    sideItems: dbReview.sideItems.map(item => ({
+    sideItems: dbReview.sideItems.map((item) => ({
       name: item.name,
-      price: item.price
+      price: item.price,
     })),
-    tags: dbReview.tags.map(tag => tag.name),
-    address: dbReview.restaurant.address.startsWith(dbReview.restaurant.prefecture) 
-      ? dbReview.restaurant.address 
+    tags: dbReview.tags.map((tag) => tag.name),
+    address: dbReview.restaurant.address.startsWith(
+      dbReview.restaurant.prefecture
+    )
+      ? dbReview.restaurant.address
       : `${dbReview.restaurant.prefecture}${dbReview.restaurant.city}${dbReview.restaurant.address}`,
-    photos: dbReview.photos.map(photo => ({
+    photos: dbReview.photos.map((photo) => ({
       url: `/uploads/${photo.filename}`, // 假設照片存放在 uploads 目錄
       category: photo.category,
-      description: photo.filename
+      description: photo.filename,
     })),
     textReview: dbReview.textReview,
     createdAt: dbReview.createdAt,
@@ -119,7 +121,7 @@ const convertDatabaseReview = (dbReview: DatabaseReview): Review => {
     reservationStatus: dbReview.reservationStatus,
     waitTime: dbReview.waitTime ? `${dbReview.waitTime}分鐘` : undefined,
     orderMethod: dbReview.orderMethod,
-    paymentMethods: dbReview.paymentMethod.split(', '),
+    paymentMethods: dbReview.paymentMethod.split(", "),
     nearestStation: dbReview.nearestStation,
     walkingTime: dbReview.walkingTime?.toString(),
   };
@@ -127,7 +129,6 @@ const convertDatabaseReview = (dbReview: DatabaseReview): Review => {
 
 export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("latest");
   const [filterBy, setFilterBy] = useState("all");
@@ -139,17 +140,17 @@ export default function ReviewsPage() {
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
   // 載入評價資料
-  const loadReviews = async () => {
+  const loadReviews = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/reviews');
+      const response = await fetch("/api/reviews");
       if (!response.ok) {
-        throw new Error('載入評價失敗');
+        throw new Error("載入評價失敗");
       }
       const data = await response.json();
-      
+
       if (data.reviews && Array.isArray(data.reviews)) {
-        const convertedReviews = data.reviews.map((dbReview: DatabaseReview) => 
+        const convertedReviews = data.reviews.map((dbReview: DatabaseReview) =>
           convertDatabaseReview(dbReview)
         );
         setReviews(convertedReviews);
@@ -157,22 +158,18 @@ export default function ReviewsPage() {
         setReviews([]);
       }
     } catch (error) {
-      console.error('載入評價錯誤:', error);
-      toast({
-        title: "載入評價失敗",
-        description: "無法載入評價資料，請重試",
-        variant: "destructive",
-      });
+      console.error("載入評價錯誤:", error);
+      toast.error("載入評價失敗: 無法載入評價資料，請重試");
       setReviews([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // 組件載入時執行
   useEffect(() => {
     loadReviews();
-  }, []);
+  }, [loadReviews]);
 
   const filteredAndSortedReviews = reviews
     .filter((review) => {
@@ -225,29 +222,22 @@ export default function ReviewsPage() {
 
   const confirmDelete = async () => {
     if (!reviewToDelete) return;
-    
+
     try {
       const response = await fetch(`/api/reviews/${reviewToDelete}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      
+
       if (!response.ok) {
-        throw new Error('刪除評價失敗');
+        throw new Error("刪除評價失敗");
       }
-      
+
       // 成功刪除後從列表中移除
       setReviews(reviews.filter((review) => review.id !== reviewToDelete));
-      toast({
-        title: "刪除成功",
-        description: "評價已成功刪除",
-      });
+      toast.success("刪除成功: 評價已成功刪除");
     } catch (error) {
-      console.error('刪除評價錯誤:', error);
-      toast({
-        title: "刪除失敗",
-        description: "無法刪除評價，請重試",
-        variant: "destructive",
-      });
+      console.error("刪除評價錯誤:", error);
+      toast.error("刪除失敗: 無法刪除評價，請重試");
     } finally {
       setDeleteDialogOpen(false);
       setReviewToDelete(null);
@@ -260,9 +250,10 @@ export default function ReviewsPage() {
   };
 
   const renderStars = (rating: number) => {
+    const stars = ["first", "second", "third", "fourth", "fifth"];
     return Array.from({ length: 5 }, (_, i) => (
       <Star
-        key={`star-${rating}-${i}`}
+        key={`star-${stars[i]}`}
         className={`h-4 w-4 ${
           i < Math.floor(rating)
             ? "fill-yellow-400 text-yellow-400"
@@ -401,6 +392,7 @@ export default function ReviewsPage() {
               <Card
                 key={review.id}
                 className="hover:shadow-lg transition-shadow"
+                data-testid="review-card"
               >
                 <CardContent className="p-6">
                   <div className="flex gap-4">

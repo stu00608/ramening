@@ -26,7 +26,18 @@ import { format } from "date-fns";
 import { CalendarIcon, Minus, Plus, Upload, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+
+// 類型定義
+interface Station {
+  placeId: string;
+  name: string;
+  walkingTime?: number;
+}
+
+interface ErrorDetail {
+  message: string;
+}
 
 // 拉麵分類選項
 const ramenCategories = [
@@ -66,12 +77,12 @@ const photoCategories = [
 
 // 照片分類中文到英文的映射
 const photoCategoryMapping: Record<string, string> = {
-  "拉麵": "RAMEN",
-  "副餐": "SIDE",
-  "店內環境": "INTERIOR",
-  "店家外觀": "EXTERIOR",
-  "菜單": "MENU",
-  "其他": "OTHER",
+  拉麵: "RAMEN",
+  副餐: "SIDE",
+  店內環境: "INTERIOR",
+  店家外觀: "EXTERIOR",
+  菜單: "MENU",
+  其他: "OTHER",
 };
 
 // 推薦標籤現在從餐廳歷史評價中動態載入
@@ -98,8 +109,7 @@ function NewReviewPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-  
+
   // 餐廳資訊狀態
   const [restaurant, setRestaurant] = useState<{
     id: string;
@@ -129,12 +139,14 @@ function NewReviewPageContent() {
   const [textReview, setTextReview] = useState("");
 
   // 車站選擇相關狀態
-  const [nearestStations, setNearestStations] = useState<{
-    placeId: string;
-    name: string;
-    address: string;
-    walkingTime?: number;
-  }[]>([]);
+  const [nearestStations, setNearestStations] = useState<
+    {
+      placeId: string;
+      name: string;
+      address: string;
+      walkingTime?: number;
+    }[]
+  >([]);
   const [selectedStation, setSelectedStation] = useState<{
     placeId: string;
     name: string;
@@ -149,7 +161,7 @@ function NewReviewPageContent() {
   // 檢查並載入餐廳資訊
   useEffect(() => {
     const restaurantId = searchParams.get("restaurantId");
-    
+
     if (!restaurantId) {
       // 沒有餐廳ID，導向搜尋頁面
       router.push("/search");
@@ -162,31 +174,19 @@ function NewReviewPageContent() {
         const response = await fetch(`/api/restaurants/${restaurantId}`);
         if (response.ok) {
           const restaurant = await response.json();
-          if (restaurant && restaurant.id) {
+          if (restaurant?.id) {
             setRestaurant(restaurant);
           } else {
-            toast({
-              title: "餐廳不存在",
-              description: "找不到指定的餐廳",
-              variant: "destructive",
-            });
+            toast.error("餐廳不存在: 找不到指定的餐廳");
             router.push("/search");
           }
         } else {
-          toast({
-            title: "載入失敗",
-            description: "載入餐廳資訊失敗",
-            variant: "destructive",
-          });
+          toast.error("載入失敗: 載入餐廳資訊失敗");
           router.push("/search");
         }
       } catch (error) {
         console.error("載入餐廳資訊錯誤:", error);
-        toast({
-          title: "發生錯誤",
-          description: "載入餐廳資訊時發生錯誤",
-          variant: "destructive",
-        });
+        toast.error("發生錯誤: 載入餐廳資訊時發生錯誤");
         router.push("/search");
       } finally {
         setIsLoadingRestaurant(false);
@@ -201,7 +201,9 @@ function NewReviewPageContent() {
     if (restaurant?.id) {
       const loadRecommendedTags = async () => {
         try {
-          const response = await fetch(`/api/restaurants/${restaurant.id}/tags`);
+          const response = await fetch(
+            `/api/restaurants/${restaurant.id}/tags`
+          );
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.tags) {
@@ -230,34 +232,36 @@ function NewReviewPageContent() {
         setIsLoadingStations(true);
         try {
           // 首先獲取餐廳詳細資訊（包含經緯度）
-          const detailsResponse = await fetch(`/api/places/details?placeId=${restaurant.googleId}`);
+          const detailsResponse = await fetch(
+            `/api/places/details?placeId=${restaurant.googleId}`
+          );
           if (!detailsResponse.ok) {
             throw new Error("無法獲取餐廳詳細資訊");
           }
-          
+
           const restaurantDetails = await detailsResponse.json();
           const { location } = restaurantDetails;
-          
+
           // 搜尋附近的車站
           const stationsResponse = await fetch(
             `/api/stations/search?lat=${location.lat}&lng=${location.lng}&radius=1500`
           );
-          
+
           if (!stationsResponse.ok) {
             throw new Error("無法搜尋附近車站");
           }
-          
+
           const stationsData = await stationsResponse.json();
           const stations = stationsData.stations || [];
-          
+
           // 計算每個車站的徒步時間
           const stationsWithWalkingTime = await Promise.all(
-            stations.map(async (station: any) => {
+            stations.map(async (station: Station) => {
               try {
                 const walkingResponse = await fetch(
                   `/api/directions/walking?originPlaceId=${restaurant.googleId}&destinationPlaceId=${station.placeId}`
                 );
-                
+
                 if (walkingResponse.ok) {
                   const walkingData = await walkingResponse.json();
                   return {
@@ -272,12 +276,14 @@ function NewReviewPageContent() {
               }
             })
           );
-          
+
           // 過濾出20分鐘內的車站並排序
           const nearbyStations = stationsWithWalkingTime
-            .filter((station) => station.walkingTime && station.walkingTime <= 20)
+            .filter(
+              (station) => station.walkingTime && station.walkingTime <= 20
+            )
             .sort((a, b) => (a.walkingTime || 999) - (b.walkingTime || 999));
-          
+
           setNearestStations(nearbyStations);
         } catch (error) {
           console.error("載入附近車站失敗:", error);
@@ -410,11 +416,7 @@ function NewReviewPageContent() {
 
   const handleSubmit = async (isDraft = false) => {
     if (!restaurant) {
-      toast({
-        title: "餐廳資訊遺失",
-        description: "請重新選擇餐廳",
-        variant: "destructive",
-      });
+      toast.error("餐廳資訊遺失: 請重新選擇餐廳");
       return;
     }
 
@@ -425,29 +427,19 @@ function NewReviewPageContent() {
       );
 
       if (!hasValidRamenItem) {
-        toast({
-          title: "拉麵品項未完整",
-          description: "請至少填寫一個完整的拉麵品項（品項名稱、分類和價格）",
-          variant: "destructive",
-        });
+        toast.error(
+          "拉麵品項未完整: 請至少填寫一個完整的拉麵品項（品項名稱、分類和價格）"
+        );
         return;
       }
 
       if (!textReview.trim()) {
-        toast({
-          title: "文字評價未填寫",
-          description: "請填寫文字評價",
-          variant: "destructive",
-        });
+        toast.error("文字評價未填寫: 請填寫文字評價");
         return;
       }
 
       if (!visitDate) {
-        toast({
-          title: "造訪日期未選擇",
-          description: "請選擇造訪日期",
-          variant: "destructive",
-        });
+        toast.error("造訪日期未選擇: 請選擇造訪日期");
         return;
       }
     }
@@ -457,20 +449,20 @@ function NewReviewPageContent() {
       restaurantId: restaurant.id,
       visitDate: visitDate ? visitDate.toISOString() : null,
       visitTime,
-      partySize: parseInt(guestCount) || 1,
+      partySize: Number.parseInt(guestCount) || 1,
       reservationStatus,
-      waitTime: waitTime ? parseInt(waitTime) : null,
+      waitTime: waitTime ? Number.parseInt(waitTime) : null,
       orderMethod,
-      paymentMethods: selectedPaymentMethods.map(m => m.label),
-      ramenItems: ramenItems.filter(item => item.name.trim()),
-      sideItems: sideItems.filter(item => item.name.trim()),
-      tags: selectedTags.map(tag => tag.label),
+      paymentMethods: selectedPaymentMethods.map((m) => m.label),
+      ramenItems: ramenItems.filter((item) => item.name.trim()),
+      sideItems: sideItems.filter((item) => item.name.trim()),
+      tags: selectedTags.map((tag) => tag.label),
       textReview: textReview.trim(),
       // 車站資訊
       nearestStation: selectedStation?.name || null,
       walkingTime: selectedStation?.walkingTime || null,
       stationPlaceId: selectedStation?.placeId || null,
-      photos: photos.map(photo => ({
+      photos: photos.map((photo) => ({
         filename: photo.file.name,
         path: `/uploads/${photo.file.name}`, // 假設照片會儲存在 uploads 目錄
         category: photoCategoryMapping[photo.category] || "OTHER",
@@ -491,30 +483,29 @@ function NewReviewPageContent() {
       const data = await response.json();
 
       if (data.success) {
-        toast({
-          title: isDraft ? "草稿已儲存" : "評價已成功建立",
-          description: isDraft ? "草稿已儲存，可稍後繼續編輯" : "評價已成功新增到系統中",
-        });
+        toast.success(
+          isDraft
+            ? "草稿已儲存: 草稿已儲存，可稍後繼續編輯"
+            : "評價已成功建立: 評價已成功新增到系統中"
+        );
         if (!isDraft) {
           router.push("/reviews");
         }
       } else {
         console.error("API錯誤詳情:", data);
-        toast({
-          title: `${isDraft ? "儲存草稿" : "建立評價"}失敗`,
-          description: data.details ? 
-            `${data.error}: ${data.details.map((d: any) => d.message).join(", ")}` : 
-            (data.error || "發生未知錯誤"),
-          variant: "destructive",
-        });
+        toast.error(
+          `${isDraft ? "儲存草稿" : "建立評價"}失敗: ${
+            data.details
+              ? `${data.error}: ${data.details.map((d: ErrorDetail) => d.message).join(", ")}`
+              : data.error || "發生未知錯誤"
+          }`
+        );
       }
     } catch (error) {
       console.error("提交評價錯誤:", error);
-      toast({
-        title: `${isDraft ? "儲存草稿" : "建立評價"}時發生錯誤`,
-        description: "請檢查網路連接並重試",
-        variant: "destructive",
-      });
+      toast.error(
+        `${isDraft ? "儲存草稿" : "建立評價"}時發生錯誤: 請檢查網路連接並重試`
+      );
     }
   };
 
@@ -542,7 +533,7 @@ function NewReviewPageContent() {
       <div className="container mx-auto px-6 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
             <p>載入餐廳資訊中...</p>
           </div>
         </div>
@@ -556,9 +547,7 @@ function NewReviewPageContent() {
       <div className="container mx-auto px-6 py-8">
         <div className="text-center">
           <p className="text-lg mb-4">無法載入餐廳資訊</p>
-          <Button onClick={() => router.push("/search")}>
-            返回搜尋頁面
-          </Button>
+          <Button onClick={() => router.push("/search")}>返回搜尋頁面</Button>
         </div>
       </div>
     );
@@ -573,10 +562,7 @@ function NewReviewPageContent() {
 
       {/* 選定的餐廳資訊 */}
       <Card className="mb-8 bg-muted/50">
-        <CardHeader>
-          <CardTitle className="text-lg">選定餐廳</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="space-y-2">
             <h3 className="text-xl font-semibold">{restaurant.name}</h3>
             <p className="text-sm text-muted-foreground">
@@ -721,6 +707,7 @@ function NewReviewPageContent() {
                   defaultOptions={paymentMethods}
                   placeholder="選擇付款方式..."
                   emptyIndicator={<p>找不到付款方式</p>}
+                  data-testid="payment-methods"
                 />
               </div>
             </div>
@@ -745,7 +732,7 @@ function NewReviewPageContent() {
           <CardContent className="space-y-4">
             {ramenItems.map((item, index) => (
               <div
-                key={`ramen-${index}`}
+                key={`ramen-${item.name || "unnamed"}-${index}`}
                 className="border rounded-lg p-4 space-y-4"
               >
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_120px_1fr_40px] gap-4 items-end">
@@ -789,7 +776,10 @@ function NewReviewPageContent() {
                       </SelectTrigger>
                       <SelectContent>
                         {ramenCategories.map((category) => (
-                          <SelectItem key={category.value} value={category.value}>
+                          <SelectItem
+                            key={category.value}
+                            value={category.value}
+                          >
                             {category.label}
                           </SelectItem>
                         ))}
@@ -843,7 +833,7 @@ function NewReviewPageContent() {
           <CardContent className="space-y-4">
             {sideItems.map((item, index) => (
               <div
-                key={`side-${index}`}
+                key={`side-${item.name || "unnamed"}-${index}`}
                 className="border rounded-lg p-4"
               >
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_120px_40px] gap-4 items-end">
@@ -919,9 +909,11 @@ function NewReviewPageContent() {
             />
 
             {photos.length === 0 ? (
-              <div
-                className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+              <button
+                type="button"
+                className="w-full border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
+                aria-label="上傳照片"
               >
                 <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <div className="space-y-2">
@@ -933,13 +925,13 @@ function NewReviewPageContent() {
                     支援 JPG、PNG 格式，單檔最大 5MB，最多 10 張
                   </p>
                 </div>
-              </div>
+              </button>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-start gap-4 overflow-x-auto pb-4">
                   {photos.map((photo, index) => (
                     <div
-                      key={`photo-${index}-${photo.file.name}`}
+                      key={`photo-${photo.file.name}-${photo.file.size}`}
                       className="flex-shrink-0 w-72 border rounded-lg p-4 space-y-4"
                     >
                       <div className="flex items-center justify-between">
@@ -1058,26 +1050,32 @@ function NewReviewPageContent() {
             <div className="space-y-4">
               {isLoadingStations ? (
                 <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                  <p className="text-sm text-muted-foreground">搜尋附近電車站中...</p>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    搜尋附近電車站中...
+                  </p>
                 </div>
               ) : nearestStations.length > 0 ? (
                 <div className="space-y-2">
                   <Label>選擇最近的電車站（徒步20分鐘內）</Label>
                   <div className="grid gap-2">
                     {nearestStations.map((station) => (
-                      <div
+                      <button
                         key={station.placeId}
-                        className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                        type="button"
+                        className={`w-full border rounded-lg p-3 transition-colors text-left ${
                           selectedStation?.placeId === station.placeId
                             ? "border-primary bg-primary/5"
                             : "border-muted hover:border-muted-foreground/50"
                         }`}
-                        onClick={() => setSelectedStation({
-                          placeId: station.placeId,
-                          name: station.name,
-                          walkingTime: station.walkingTime || 0,
-                        })}
+                        onClick={() =>
+                          setSelectedStation({
+                            placeId: station.placeId,
+                            name: station.name,
+                            walkingTime: station.walkingTime || 0,
+                          })
+                        }
+                        aria-label={`選擇車站：${station.name}`}
                       >
                         <div className="flex justify-between items-center">
                           <div>
@@ -1094,20 +1092,9 @@ function NewReviewPageContent() {
                             </div>
                           )}
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
-                  {selectedStation && (
-                    <div className="mt-3 p-3 bg-muted/50 rounded-lg">
-                      <p className="text-sm">
-                        <span className="font-medium">已選擇：</span>
-                        {selectedStation.name} 
-                        <span className="text-primary ml-2">
-                          （徒步{selectedStation.walkingTime}分鐘）
-                        </span>
-                      </p>
-                    </div>
-                  )}
                 </div>
               ) : restaurant?.googleId ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -1155,15 +1142,15 @@ function NewReviewPageContent() {
           >
             儲存評價
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="flex-1"
             onClick={() => handleSubmit(true)}
           >
             儲存草稿
           </Button>
-          <Button 
-            variant="destructive" 
+          <Button
+            variant="destructive"
             onClick={handleClearForm}
             className="sm:w-auto"
           >
@@ -1177,16 +1164,18 @@ function NewReviewPageContent() {
 
 export default function NewReviewPage() {
   return (
-    <Suspense fallback={
-      <div className="container mx-auto px-6 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>載入中...</p>
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-6 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+              <p>載入中...</p>
+            </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <NewReviewPageContent />
     </Suspense>
   );

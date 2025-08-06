@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, MapPin, Phone, Search, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface Restaurant {
   googleId: string;
@@ -34,7 +34,6 @@ interface Restaurant {
 
 export default function SearchPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,13 +51,13 @@ export default function SearchPage() {
       const response = await fetch(
         `/api/places/search?query=${encodeURIComponent(searchTerm)}&lat=35.6762&lng=139.6503&radius=10000`
       );
-      
+
       if (!response.ok) {
         throw new Error("搜尋失敗");
       }
 
       const data = await response.json();
-      
+
       if (data.restaurants && Array.isArray(data.restaurants)) {
         setResults(data.restaurants);
       } else {
@@ -79,16 +78,22 @@ export default function SearchPage() {
   const handleSelectRestaurant = async (restaurant: Restaurant) => {
     try {
       // 先檢查餐廳是否已存在
-      const checkResponse = await fetch(`/api/restaurants?googleId=${encodeURIComponent(restaurant.googleId)}`);
+      const checkResponse = await fetch(
+        `/api/restaurants?googleId=${encodeURIComponent(restaurant.googleId)}`
+      );
       const checkData = await checkResponse.json();
-      
-      if (checkResponse.ok && checkData.restaurants && checkData.restaurants.length > 0) {
+
+      if (
+        checkResponse.ok &&
+        checkData.restaurants &&
+        checkData.restaurants.length > 0
+      ) {
         // 餐廳已存在，直接導向評價建立頁面
         const existingRestaurant = checkData.restaurants[0];
         router.push(`/reviews/new?restaurantId=${existingRestaurant.id}`);
         return;
       }
-      
+
       // 餐廳不存在，建立新餐廳
       const createResponse = await fetch("/api/restaurants", {
         method: "POST",
@@ -106,34 +111,26 @@ export default function SearchPage() {
       });
 
       const createData = await createResponse.json();
-      
+
       if (createResponse.ok && createData.id) {
         // 成功建立新餐廳，導向評價建立頁面
         router.push(`/reviews/new?restaurantId=${createData.id}`);
       } else {
         console.error("建立餐廳失敗:", createData.error || "未知錯誤");
-        toast({
-          title: "建立餐廳失敗",
-          description: createData.error || "未知錯誤，請重試",
-          variant: "destructive",
-        });
+        toast.error(`建立餐廳失敗: ${createData.error || "未知錯誤，請重試"}`);
       }
     } catch (error) {
       console.error("選擇餐廳錯誤:", error);
-      toast({
-        title: "選擇餐廳失敗",
-        description: "選擇餐廳時發生錯誤，請重試",
-        variant: "destructive",
-      });
+      toast.error("選擇餐廳失敗: 選擇餐廳時發生錯誤，請重試");
     }
   };
 
   const handleViewDetails = (restaurant: Restaurant) => {
     // 建立 Google Maps 連結
     const mapsUrl = `https://www.google.com/maps/place/?q=place_id:${restaurant.googleId}`;
-    
+
     // 在新分頁開啟 Google Maps
-    window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+    window.open(mapsUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -218,6 +215,7 @@ export default function SearchPage() {
                 <Card
                   key={restaurant.googleId}
                   className="hover:shadow-lg transition-shadow"
+                  data-testid="restaurant-card"
                 >
                   <CardContent className="p-6">
                     <div className="flex gap-4">
@@ -269,14 +267,14 @@ export default function SearchPage() {
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           onClick={() => handleSelectRestaurant(restaurant)}
                         >
                           選擇此店舖
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleViewDetails(restaurant)}
                         >

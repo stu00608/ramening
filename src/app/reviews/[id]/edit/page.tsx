@@ -23,6 +23,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { TimePicker } from "@/components/ui/time-picker";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { zhTW } from "date-fns/locale";
 import {
   CalendarIcon,
   Camera,
@@ -38,9 +40,7 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { Suspense, useEffect, useState } from "react";
-import { format } from "date-fns";
-import { zhTW } from "date-fns/locale";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 // 拉麵分類選項
 const ramenCategories = [
@@ -80,22 +80,22 @@ const photoCategories = [
 
 // 照片分類中文到英文的映射
 const photoCategoryMapping: Record<string, string> = {
-  "拉麵": "RAMEN",
-  "副餐": "SIDE",
-  "店內環境": "INTERIOR",
-  "店家外觀": "EXTERIOR",
-  "菜單": "MENU",
-  "其他": "OTHER",
+  拉麵: "RAMEN",
+  副餐: "SIDE",
+  店內環境: "INTERIOR",
+  店家外觀: "EXTERIOR",
+  菜單: "MENU",
+  其他: "OTHER",
 };
 
 // 英文到中文的映射（用於顯示現有照片）
 const photoCategoryReverseMapping: Record<string, string> = {
-  "RAMEN": "拉麵",
-  "SIDE": "副餐",
-  "INTERIOR": "店內環境",
-  "EXTERIOR": "店家外觀",
-  "MENU": "菜單",
-  "OTHER": "其他",
+  RAMEN: "拉麵",
+  SIDE: "副餐",
+  INTERIOR: "店內環境",
+  EXTERIOR: "店家外觀",
+  MENU: "菜單",
+  OTHER: "其他",
 };
 
 interface RamenItem {
@@ -164,7 +164,6 @@ interface Review {
 
 function EditReviewPageContent({ reviewId }: { reviewId: string }) {
   const router = useRouter();
-  const { toast } = useToast();
 
   // 載入狀態
   const [isLoading, setIsLoading] = useState(true);
@@ -181,7 +180,9 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
   const [reservationStatus, setReservationStatus] = useState("無需排隊");
   const [waitTime, setWaitTime] = useState("");
   const [orderMethod, setOrderMethod] = useState("食券機");
-  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<Option[]>([]);
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<
+    Option[]
+  >([]);
   const [ramenItems, setRamenItems] = useState<RamenItem[]>([]);
   const [sideItems, setSideItems] = useState<SideItem[]>([]);
   const [selectedTags, setSelectedTags] = useState<Option[]>([]);
@@ -189,13 +190,15 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [stations, setStations] = useState<Station[]>([]);
   const [isLoadingStations, setIsLoadingStations] = useState(false);
-  
+
   // 照片相關
   const [photos, setPhotos] = useState<PhotoUpload[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<ExistingPhoto[]>([]);
   const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([]);
   const [cropModalOpen, setCropModalOpen] = useState(false);
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number | null>(null);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number | null>(
+    null
+  );
 
   // 推薦標籤
   const [recommendedTags, setRecommendedTags] = useState<Option[]>([]);
@@ -206,20 +209,20 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
       try {
         setIsLoading(true);
         const response = await fetch(`/api/reviews/${reviewId}`);
-        
+
         if (!response.ok) {
-          throw new Error('載入評價失敗');
+          throw new Error("載入評價失敗");
         }
-        
+
         const data = await response.json();
         if (!data.success) {
-          throw new Error(data.error || '載入評價失敗');
+          throw new Error(data.error || "載入評價失敗");
         }
-        
+
         const reviewData: Review = data.review;
         setReview(reviewData);
         setRestaurant(reviewData.restaurant);
-        
+
         // 預填表單資料
         setVisitDate(new Date(reviewData.visitDate));
         setVisitTime(reviewData.visitTime);
@@ -227,107 +230,115 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
         setReservationStatus(reviewData.reservationStatus);
         setWaitTime(reviewData.waitTime?.toString() || "");
         setOrderMethod(reviewData.orderMethod);
-        
+
         // 處理付款方式
-        const paymentMethodsArray = reviewData.paymentMethod.split(', ');
-        const selectedPayments = paymentMethodsArray.map(method => ({
+        const paymentMethodsArray = reviewData.paymentMethod.split(", ");
+        const selectedPayments = paymentMethodsArray.map((method) => ({
           value: method,
-          label: method
+          label: method,
         }));
         setSelectedPaymentMethods(selectedPayments);
-        
+
         // 設定拉麵品項
-        setRamenItems(reviewData.ramenItems.map(item => ({
-          ...item,
-          customization: item.customization || ""
-        })));
-        
+        setRamenItems(
+          reviewData.ramenItems.map((item) => ({
+            ...item,
+            customization: item.customization || "",
+          }))
+        );
+
         // 設定副餐品項
         setSideItems(reviewData.sideItems);
-        
+
         // 設定標籤
-        const tagOptions = reviewData.tags.map(tag => ({
+        const tagOptions = reviewData.tags.map((tag) => ({
           value: tag.name,
-          label: tag.name
+          label: tag.name,
         }));
         setSelectedTags(tagOptions);
-        
+
         // 設定文字評價
         setTextReview(reviewData.textReview);
-        
+
         // 設定現有照片
         setExistingPhotos(reviewData.photos);
-        
+
         // 載入附近車站（包含當前選擇的車站）
         if (reviewData.restaurant.googleId) {
-          const currentStation = reviewData.nearestStation && reviewData.stationPlaceId ? {
-            placeId: reviewData.stationPlaceId,
-            name: reviewData.nearestStation,
-            walkingTime: reviewData.walkingTime
-          } : null;
-          
-          await loadNearbyStations(reviewData.restaurant.googleId, currentStation);
+          const currentStation =
+            reviewData.nearestStation && reviewData.stationPlaceId
+              ? {
+                  placeId: reviewData.stationPlaceId,
+                  name: reviewData.nearestStation,
+                  walkingTime: reviewData.walkingTime,
+                }
+              : null;
+
+          await loadNearbyStations(
+            reviewData.restaurant.googleId,
+            currentStation
+          );
         }
-        
+
         // 設定車站資訊
         if (reviewData.nearestStation && reviewData.stationPlaceId) {
           setSelectedStation({
             placeId: reviewData.stationPlaceId,
             name: reviewData.nearestStation,
-            walkingTime: reviewData.walkingTime
+            walkingTime: reviewData.walkingTime,
           });
         }
-        
+
         // 載入推薦標籤
         await loadRecommendedTags(reviewData.restaurant.id);
-        
       } catch (error) {
-        console.error('載入評價錯誤:', error);
-        toast({
-          title: "載入失敗",
-          description: "無法載入評價資料，請重試",
-          variant: "destructive",
-        });
-        router.push('/reviews');
+        console.error("載入評價錯誤:", error);
+        toast.error("載入失敗: 無法載入評價資料，請重試");
+        router.push("/reviews");
       } finally {
         setIsLoading(false);
       }
     };
 
     loadReview();
-  }, [reviewId, router, toast]);
+  }, [reviewId, router]);
 
   // 載入附近車站
-  const loadNearbyStations = async (googlePlaceId: string, currentStation?: Station | null) => {
+  const loadNearbyStations = async (
+    googlePlaceId: string,
+    currentStation?: Station | null
+  ) => {
     try {
       setIsLoadingStations(true);
-      
+
       // 獲取餐廳詳細資料
-      const detailsResponse = await fetch(`/api/places/details?placeId=${googlePlaceId}`);
+      const detailsResponse = await fetch(
+        `/api/places/details?placeId=${googlePlaceId}`
+      );
       const detailsData = await detailsResponse.json();
-      
+
       if (!detailsData.location) {
         return;
       }
-      
+
       const location = detailsData.location;
-      
+
       // 搜尋附近的車站
       const stationsResponse = await fetch(
         `/api/stations/search?lat=${location.lat}&lng=${location.lng}&radius=1500`
       );
       const stationsData = await stationsResponse.json();
-      
+
       if (stationsData.stations && stationsData.stations.length > 0) {
         // 計算步行時間
         const stationsWithTime = await Promise.all(
-          stationsData.stations.slice(0, 4).map(async (station: any) => {
+          stationsData.stations.slice(0, 4).map(async (station: Station) => {
             try {
               const directionsResponse = await fetch(
                 `/api/directions/walking?originPlaceId=${googlePlaceId}&destinationPlaceId=${station.placeId}`
               );
               const directionsData = await directionsResponse.json();
-              
+
               return {
                 placeId: station.placeId,
                 name: station.name,
@@ -342,21 +353,24 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
             }
           })
         );
-        
+
         // 按步行時間排序
         let sortedStations = stationsWithTime
-          .filter(station => station.walkingTime <= 20)
+          .filter((station) => station.walkingTime <= 20)
           .sort((a, b) => a.walkingTime - b.walkingTime);
-        
+
         // 如果有當前選擇的車站，確保它在列表中
-        if (currentStation && !sortedStations.find(s => s.placeId === currentStation.placeId)) {
+        if (
+          currentStation &&
+          !sortedStations.find((s) => s.placeId === currentStation.placeId)
+        ) {
           sortedStations = [currentStation, ...sortedStations];
         }
-        
+
         setStations(sortedStations);
       }
     } catch (error) {
-      console.error('載入車站錯誤:', error);
+      console.error("載入車站錯誤:", error);
     } finally {
       setIsLoadingStations(false);
     }
@@ -375,7 +389,7 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
         setRecommendedTags(tagOptions);
       }
     } catch (error) {
-      console.error('載入推薦標籤錯誤:', error);
+      console.error("載入推薦標籤錯誤:", error);
     }
   };
 
@@ -410,21 +424,23 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      Array.from(files).forEach((file) => {
-        if (file.size <= 5 * 1024 * 1024 && photos.length + existingPhotos.length < 10) {
-          setPhotos(prev => [...prev, {
-            file,
-            category: "拉麵",
-            description: ""
-          }]);
+      for (const file of Array.from(files)) {
+        if (
+          file.size <= 5 * 1024 * 1024 &&
+          photos.length + existingPhotos.length < 10
+        ) {
+          setPhotos((prev) => [
+            ...prev,
+            {
+              file,
+              category: "拉麵",
+              description: "",
+            },
+          ]);
         } else {
-          toast({
-            title: "上傳失敗",
-            description: "檔案大小不能超過5MB，且總照片數不能超過10張",
-            variant: "destructive",
-          });
+          toast.error("上傳失敗: 檔案大小不能超過5MB，且總照片數不能超過10張");
         }
-      });
+      }
     }
   };
 
@@ -435,8 +451,8 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
 
   // 移除現有照片
   const removeExistingPhoto = (photoId: string) => {
-    setExistingPhotos(prev => prev.filter(photo => photo.id !== photoId));
-    setRemovedPhotoIds(prev => [...prev, photoId]);
+    setExistingPhotos((prev) => prev.filter((photo) => photo.id !== photoId));
+    setRemovedPhotoIds((prev) => [...prev, photoId]);
   };
 
   // 更新照片分類
@@ -456,69 +472,49 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
   // 提交表單
   const handleSubmit = async (isDraft = false) => {
     if (!restaurant) {
-      toast({
-        title: "提交失敗",
-        description: "餐廳資料載入中，請稍候",
-        variant: "destructive",
-      });
+      toast.error("提交失敗: 餐廳資料載入中，請稍候");
       return;
     }
 
     // 基本驗證
     if (!visitDate || !visitTime || !textReview.trim()) {
-      toast({
-        title: "提交失敗",
-        description: "請填寫所有必填欄位",
-        variant: "destructive",
-      });
+      toast.error("提交失敗: 請填寫所有必填欄位");
       return;
     }
 
-    if (ramenItems.filter(item => item.name.trim()).length === 0) {
-      toast({
-        title: "提交失敗",
-        description: "至少需要一個拉麵品項",
-        variant: "destructive",
-      });
+    if (ramenItems.filter((item) => item.name.trim()).length === 0) {
+      toast.error("提交失敗: 至少需要一個拉麵品項");
       return;
     }
 
     if (selectedPaymentMethods.length === 0) {
-      toast({
-        title: "提交失敗",
-        description: "請選擇至少一種付款方式",
-        variant: "destructive",
-      });
+      toast.error("提交失敗: 請選擇至少一種付款方式");
       return;
     }
 
     if (reservationStatus === "排隊等候" && !waitTime) {
-      toast({
-        title: "提交失敗",
-        description: "選擇排隊等候時必須填寫等待時間",
-        variant: "destructive",
-      });
+      toast.error("提交失敗: 選擇排隊等候時必須填寫等待時間");
       return;
     }
 
     const reviewData = {
       visitDate: visitDate.toISOString(),
       visitTime,
-      partySize: parseInt(guestCount) || 1,
+      partySize: Number.parseInt(guestCount) || 1,
       reservationStatus,
-      waitTime: waitTime ? parseInt(waitTime) : null,
+      waitTime: waitTime ? Number.parseInt(waitTime) : null,
       orderMethod,
-      paymentMethods: selectedPaymentMethods.map(m => m.label),
-      ramenItems: ramenItems.filter(item => item.name.trim()),
-      sideItems: sideItems.filter(item => item.name.trim()),
-      tags: selectedTags.map(tag => tag.label),
+      paymentMethods: selectedPaymentMethods.map((m) => m.label),
+      ramenItems: ramenItems.filter((item) => item.name.trim()),
+      sideItems: sideItems.filter((item) => item.name.trim()),
+      tags: selectedTags.map((tag) => tag.label),
       textReview: textReview.trim(),
       // 車站資訊
       nearestStation: selectedStation?.name || null,
       walkingTime: selectedStation?.walkingTime || null,
       stationPlaceId: selectedStation?.placeId || null,
       // 照片處理
-      photos: photos.map(photo => ({
+      photos: photos.map((photo) => ({
         filename: photo.file.name,
         path: `/uploads/${photo.file.name}`,
         category: photoCategoryMapping[photo.category] || "OTHER",
@@ -542,21 +538,18 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
       const result = await response.json();
 
       if (response.ok && result.success !== false) {
-        toast({
-          title: "更新成功",
-          description: isDraft ? "評價草稿已儲存" : "評價已成功更新",
-        });
+        toast.success(
+          isDraft ? "更新成功: 評價草稿已儲存" : "更新成功: 評價已成功更新"
+        );
         router.push("/reviews");
       } else {
         throw new Error(result.error || "更新失敗");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("更新評價錯誤:", error);
-      toast({
-        title: "更新失敗",
-        description: error.message || "請檢查網路連線並重試",
-        variant: "destructive",
-      });
+      toast.error(
+        `更新失敗: ${error instanceof Error ? error.message : "請檢查網路連線並重試"}`
+      );
     } finally {
       setIsSaving(false);
     }
@@ -606,7 +599,7 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
             <p className="text-muted-foreground mb-4">
               評價可能已被刪除或不存在
             </p>
-            <Button onClick={() => router.push('/reviews')}>
+            <Button onClick={() => router.push("/reviews")}>
               返回評價管理
             </Button>
           </CardContent>
@@ -784,7 +777,10 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               {ramenItems.map((item, index) => (
-                <div key={index} className="space-y-4 p-4 border rounded-lg">
+                <div
+                  key={`ramen-${item.name || "unnamed"}-${index}`}
+                  className="space-y-4 p-4 border rounded-lg"
+                >
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">拉麵 #{index + 1}</h4>
                     {ramenItems.length > 1 && (
@@ -821,7 +817,8 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                         value={item.price || ""}
                         onChange={(e) => {
                           const updated = [...ramenItems];
-                          updated[index].price = parseInt(e.target.value) || 0;
+                          updated[index].price =
+                            Number.parseInt(e.target.value) || 0;
                           setRamenItems(updated);
                         }}
                       />
@@ -894,7 +891,10 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               {sideItems.map((item, index) => (
-                <div key={index} className="space-y-4 p-4 border rounded-lg">
+                <div
+                  key={`side-${item.name || "unnamed"}-${index}`}
+                  className="space-y-4 p-4 border rounded-lg"
+                >
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">副餐 #{index + 1}</h4>
                     <Button
@@ -929,7 +929,8 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                         value={item.price || ""}
                         onChange={(e) => {
                           const updated = [...sideItems];
-                          updated[index].price = parseInt(e.target.value) || 0;
+                          updated[index].price =
+                            Number.parseInt(e.target.value) || 0;
                           setSideItems(updated);
                         }}
                       />
@@ -995,9 +996,14 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                   <Label className="text-sm font-medium">現有照片</Label>
                   <div className="grid gap-4 md:grid-cols-2 mt-2">
                     {existingPhotos.map((photo) => (
-                      <div key={photo.id} className="space-y-2 p-3 border rounded-lg">
+                      <div
+                        key={photo.id}
+                        className="space-y-2 p-3 border rounded-lg"
+                      >
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{photo.filename}</span>
+                          <span className="text-sm font-medium">
+                            {photo.filename}
+                          </span>
                           <Button
                             variant="outline"
                             size="sm"
@@ -1008,7 +1014,9 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                           </Button>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          分類: {photoCategoryReverseMapping[photo.category] || photo.category}
+                          分類:{" "}
+                          {photoCategoryReverseMapping[photo.category] ||
+                            photo.category}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           大小: {(photo.size / 1024).toFixed(1)} KB
@@ -1024,7 +1032,10 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                 <Label className="text-sm font-medium">新增照片</Label>
                 <div className="grid gap-4 md:grid-cols-2 mt-2">
                   {photos.map((photo, index) => (
-                    <div key={index} className="space-y-2 p-3 border rounded-lg">
+                    <div
+                      key={`photo-${photo.file.name}-${photo.file.size}`}
+                      className="space-y-2 p-3 border rounded-lg"
+                    >
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium truncate">
                           {photo.file.name}
@@ -1043,7 +1054,9 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                         <Label className="text-xs">照片分類</Label>
                         <Select
                           value={photo.category}
-                          onValueChange={(value) => updatePhotoCategory(index, value)}
+                          onValueChange={(value) =>
+                            updatePhotoCategory(index, value)
+                          }
                         >
                           <SelectTrigger className="h-8">
                             <SelectValue />
@@ -1063,7 +1076,9 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                         <Input
                           placeholder="選填"
                           value={photo.description || ""}
-                          onChange={(e) => updatePhotoDescription(index, e.target.value)}
+                          onChange={(e) =>
+                            updatePhotoDescription(index, e.target.value)
+                          }
                           className="h-8"
                         />
                       </div>
@@ -1079,9 +1094,7 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                     >
                       <div className="text-center">
                         <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        <p className="text-sm text-gray-600">
-                          點擊上傳照片
-                        </p>
+                        <p className="text-sm text-gray-600">點擊上傳照片</p>
                         <p className="text-xs text-gray-400">
                           支援 JPG、PNG，最大 5MB
                         </p>
@@ -1140,7 +1153,8 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                 <div>
                   <p className="font-medium">{restaurant.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {restaurant.prefecture}{restaurant.city}
+                    {restaurant.prefecture}
+                    {restaurant.city}
                   </p>
                 </div>
                 <div className="text-sm text-muted-foreground">
@@ -1172,7 +1186,9 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                     <Select
                       value={selectedStation?.placeId || ""}
                       onValueChange={(value) => {
-                        const station = stations.find(s => s.placeId === value);
+                        const station = stations.find(
+                          (s) => s.placeId === value
+                        );
                         setSelectedStation(station || null);
                       }}
                     >
@@ -1181,7 +1197,10 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                       </SelectTrigger>
                       <SelectContent>
                         {stations.map((station) => (
-                          <SelectItem key={station.placeId} value={station.placeId}>
+                          <SelectItem
+                            key={station.placeId}
+                            value={station.placeId}
+                          >
                             {station.name} (步行 {station.walkingTime} 分鐘)
                           </SelectItem>
                         ))}
@@ -1189,7 +1208,8 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
                     </Select>
                     {selectedStation && (
                       <p className="text-sm text-muted-foreground">
-                        從 {restaurant.name} 步行至 {selectedStation.name} 約需 {selectedStation.walkingTime} 分鐘
+                        從 {restaurant.name} 步行至 {selectedStation.name} 約需{" "}
+                        {selectedStation.walkingTime} 分鐘
                       </p>
                     )}
                   </div>
@@ -1215,7 +1235,7 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
               >
                 {isSaving ? "更新中..." : "更新評價"}
               </Button>
-              
+
               <Button
                 variant="outline"
                 onClick={() => handleSubmit(true)}
@@ -1224,10 +1244,10 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
               >
                 儲存草稿
               </Button>
-              
+
               <Button
                 variant="outline"
-                onClick={() => router.push('/reviews')}
+                onClick={() => router.push("/reviews")}
                 className="w-full"
               >
                 取消編輯
@@ -1256,34 +1276,40 @@ function EditReviewPageContent({ reviewId }: { reviewId: string }) {
   );
 }
 
-export default function EditReviewPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditReviewPage({
+  params,
+}: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={
-      <div className="container mx-auto px-6 py-8">
-        <Skeleton className="h-8 w-64 mb-8" />
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </CardContent>
-              </Card>
-            ))}
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-6 py-8">
+          <Skeleton className="h-8 w-64 mb-8" />
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardHeader>
+                    <Skeleton className="h-6 w-32" />
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <EditReviewPageContentWrapper params={params} />
     </Suspense>
   );
 }
 
-function EditReviewPageContentWrapper({ params }: { params: Promise<{ id: string }> }) {
+function EditReviewPageContentWrapper({
+  params,
+}: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
   return <EditReviewPageContent reviewId={id} />;
 }

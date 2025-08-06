@@ -97,9 +97,12 @@ export async function GET(request: NextRequest) {
 
     if (data.status !== "OK") {
       console.error("Google Places API 錯誤:", data.error_message);
-      
+
       // 如果是計費或API金鑰問題，使用mock資料
-      if (data.error_message?.includes("Billing") || data.error_message?.includes("API key")) {
+      if (
+        data.error_message?.includes("Billing") ||
+        data.error_message?.includes("API key")
+      ) {
         console.warn("Google Places API 不可用，使用 mock 資料");
         const mockRestaurants = [
           {
@@ -118,7 +121,7 @@ export async function GET(request: NextRequest) {
             userRatingsTotal: 150,
           },
           {
-            googleId: "mock_place_2", 
+            googleId: "mock_place_2",
             name: `麺や ${validatedData.query}`,
             prefecture: "東京都",
             city: "台東区",
@@ -131,16 +134,16 @@ export async function GET(request: NextRequest) {
             },
             rating: 4.5,
             userRatingsTotal: 200,
-          }
+          },
         ];
-        
+
         return NextResponse.json({
           restaurants: mockRestaurants,
           total: mockRestaurants.length,
-          note: "使用模擬資料（Google Places API 暫時不可用）"
+          note: "使用模擬資料（Google Places API 暫時不可用）",
         });
       }
-      
+
       return NextResponse.json(
         { error: "Google Places API 搜尋失敗", details: data.error_message },
         { status: 500 }
