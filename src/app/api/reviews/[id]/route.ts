@@ -55,10 +55,15 @@ const UpdateReviewSchema = z.object({
   tags: z.array(z.string()).optional(),
   textReview: z
     .string()
-    .min(10, "評價內容至少需要10個字")
+    .min(1, "評價內容不能為空")
     .max(1000, "評價內容不能超過1000字")
     .optional(),
+  // 車站資訊
+  nearestStation: z.string().nullable().optional(),
+  walkingTime: z.number().min(0).max(60).nullable().optional(),
+  stationPlaceId: z.string().nullable().optional(),
   photos: z.array(PhotoSchema).optional(),
+  removedPhotoIds: z.array(z.string()).optional(),
 });
 
 // GET /api/reviews/[id] - 取得特定評價
@@ -80,10 +85,13 @@ export async function GET(
     });
 
     if (!review) {
-      return NextResponse.json({ error: "找不到指定的評價" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "找不到指定的評價" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json(review);
+    return NextResponse.json({ success: true, review });
   } catch (error) {
     console.error("取得評價資料失敗:", error);
     return NextResponse.json({ error: "取得評價資料失敗" }, { status: 500 });
@@ -151,6 +159,14 @@ export async function PUT(
         updateData.paymentMethod = validatedData.paymentMethods.join(", ");
       if (validatedData.textReview)
         updateData.textReview = validatedData.textReview;
+
+      // 車站資訊
+      if (validatedData.nearestStation !== undefined)
+        updateData.nearestStation = validatedData.nearestStation;
+      if (validatedData.walkingTime !== undefined)
+        updateData.walkingTime = validatedData.walkingTime;
+      if (validatedData.stationPlaceId !== undefined)
+        updateData.stationPlaceId = validatedData.stationPlaceId;
 
       const review = await tx.review.update({
         where: { id },
@@ -234,25 +250,30 @@ export async function PUT(
         }
       }
 
-      // 更新照片
-      if (validatedData.photos) {
-        // 刪除現有的照片記錄
+      // 處理移除的照片
+      if (
+        validatedData.removedPhotoIds &&
+        validatedData.removedPhotoIds.length > 0
+      ) {
         await tx.photo.deleteMany({
-          where: { reviewId: id },
+          where: {
+            id: { in: validatedData.removedPhotoIds },
+            reviewId: id,
+          },
         });
+      }
 
-        // 建立新的照片記錄
-        if (validatedData.photos.length > 0) {
-          await tx.photo.createMany({
-            data: validatedData.photos.map((photo) => ({
-              filename: photo.filename,
-              path: photo.path,
-              category: photo.category,
-              size: photo.size,
-              reviewId: id,
-            })),
-          });
-        }
+      // 新增照片
+      if (validatedData.photos && validatedData.photos.length > 0) {
+        await tx.photo.createMany({
+          data: validatedData.photos.map((photo) => ({
+            filename: photo.filename,
+            path: photo.path,
+            category: photo.category,
+            size: photo.size,
+            reviewId: id,
+          })),
+        });
       }
 
       return review;
@@ -270,7 +291,7 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json(completeReview);
+    return NextResponse.json({ success: true, review: completeReview });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

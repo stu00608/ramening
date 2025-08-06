@@ -14,7 +14,9 @@ export const ValidationRules = {
     .min(1, "市區町村不能為空")
     .max(50, "市區町村長度不能超過50字"),
   address: z.string().min(1, "地址不能為空").max(200, "地址長度不能超過200字"),
-  postalCode: z.string().regex(/^\d{3}-?\d{4}$/, "郵遞區號格式錯誤（例：1234567 或 123-4567）"),
+  postalCode: z
+    .string()
+    .regex(/^\d{3}-?\d{4}$/, "郵遞區號格式錯誤（例：1234567 或 123-4567）"),
 
   // 評價相關驗證
   textReview: z

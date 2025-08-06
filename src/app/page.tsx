@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Instagram, Plus, Search, Star } from "lucide-react";
+import { Plus, Star } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -19,24 +19,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-pink-600" />
-              搜尋拉麵店
-            </CardTitle>
-            <CardDescription>
-              使用 Google Places API 搜尋日本境內的拉麵店
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/search">開始搜尋</Link>
-            </Button>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-6 md:grid-cols-2">
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2">
@@ -70,23 +53,6 @@ export default function HomePage() {
             </Button>
           </CardContent>
         </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2">
-              <Instagram className="h-5 w-5 text-pink-600" />
-              Instagram 匯出
-            </CardTitle>
-            <CardDescription>
-              將評價轉換為 Instagram 貼文格式，分享您的體驗
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/export">匯出貼文</Link>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="mt-12">
@@ -103,9 +69,9 @@ export default function HomePage() {
                 1
               </div>
               <div>
-                <p className="font-medium">搜尋拉麵店</p>
+                <p className="font-medium">建立評價</p>
                 <p className="text-sm text-muted-foreground">
-                  使用搜尋功能找到您想要評價的日本拉麵店
+                  使用側邊欄選單建立評價，系統會協助您搜尋拉麵店並記錄造訪詳情
                 </p>
               </div>
             </div>
@@ -114,9 +80,9 @@ export default function HomePage() {
                 2
               </div>
               <div>
-                <p className="font-medium">建立詳細評價</p>
+                <p className="font-medium">記錄詳細資訊</p>
                 <p className="text-sm text-muted-foreground">
-                  記錄造訪詳情、上傳照片、評分拉麵品項
+                  上傳照片、評分拉麵品項、記錄造訪時間和個人體驗
                 </p>
               </div>
             </div>
@@ -127,7 +93,7 @@ export default function HomePage() {
               <div>
                 <p className="font-medium">管理和分享</p>
                 <p className="text-sm text-muted-foreground">
-                  在儀表板管理評價，或匯出為 Instagram 貼文格式
+                  在評價管理頁面查看所有記錄，或匯出為 Instagram 貼文格式
                 </p>
               </div>
             </div>

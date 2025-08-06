@@ -4,28 +4,42 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SEARCH_PARAMS, TOAST_MESSAGES } from "@/lib/constants";
 import { Clock, MapPin, Phone, Search, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface Restaurant {
-  id: string;
+  googleId: string;
   name: string;
   address: string;
+  fullAddress: string;
   prefecture: string;
   city: string;
   postalCode: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
   rating?: number;
-  priceLevel?: number;
+  userRatingsTotal?: number;
   phoneNumber?: string;
   openingHours?: string[];
-  photoUrl?: string;
+  photos?: Array<{
+    reference: string;
+    width: number;
+    height: number;
+  }>;
 }
 
 export default function SearchPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
@@ -33,55 +47,93 @@ export default function SearchPage() {
     setIsLoading(true);
     setHasSearched(true);
 
-    // 模擬 API 搜尋延遲
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // 使用 Google Places API 搜尋
+      const response = await fetch(
+        `/api/places/search?query=${encodeURIComponent(searchTerm)}&lat=${SEARCH_PARAMS.DEFAULT_LAT}&lng=${SEARCH_PARAMS.DEFAULT_LNG}&radius=${SEARCH_PARAMS.DEFAULT_RADIUS}`
+      );
 
-    // 模擬搜尋結果
-    const mockResults: Restaurant[] = [
-      {
-        id: "1",
-        name: "一蘭拉麵 渋谷店",
-        address: "東京都渋谷区宇田川町13-8",
-        prefecture: "東京都",
-        city: "渋谷区",
-        postalCode: "1500042",
-        rating: 4.2,
-        priceLevel: 2,
-        phoneNumber: "03-3461-1766",
-        openingHours: ["週一至週日 24小時營業"],
-      },
-      {
-        id: "2",
-        name: "麺や 七彩",
-        address: "東京都台東区浅草橋5-9-2",
-        prefecture: "東京都",
-        city: "台東区",
-        postalCode: "1110053",
-        rating: 4.5,
-        priceLevel: 2,
-        phoneNumber: "03-3851-3957",
-        openingHours: ["11:00-15:00", "18:00-21:00"],
-      },
-      {
-        id: "3",
-        name: "らーめん 大至急",
-        address: "東京都新宿区歌舞伎町1-6-2",
-        prefecture: "東京都",
-        city: "新宿区",
-        postalCode: "1600021",
-        rating: 4.1,
-        priceLevel: 1,
-        phoneNumber: "03-3205-1234",
-        openingHours: ["11:30-03:00"],
-      },
-    ];
+      if (!response.ok) {
+        throw new Error("搜尋失敗");
+      }
 
-    setResults(mockResults);
-    setIsLoading(false);
+      const data = await response.json();
+
+      if (data.restaurants && Array.isArray(data.restaurants)) {
+        setResults(data.restaurants);
+      } else {
+        setResults([]);
+      }
+    } catch (error) {
+      console.error("搜尋錯誤:", error);
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatStandardAddress = (restaurant: Restaurant) => {
     return restaurant.address.replace(restaurant.postalCode, "").trim();
+  };
+
+  const handleSelectRestaurant = async (restaurant: Restaurant) => {
+    try {
+      // 先檢查餐廳是否已存在
+      const checkResponse = await fetch(
+        `/api/restaurants?googleId=${encodeURIComponent(restaurant.googleId)}`
+      );
+      const checkData = await checkResponse.json();
+
+      if (
+        checkResponse.ok &&
+        checkData.restaurants &&
+        checkData.restaurants.length > 0
+      ) {
+        // 餐廳已存在，直接導向評價建立頁面
+        const existingRestaurant = checkData.restaurants[0];
+        router.push(`/reviews/new?restaurantId=${existingRestaurant.id}`);
+        return;
+      }
+
+      // 餐廳不存在，建立新餐廳
+      const createResponse = await fetch("/api/restaurants", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: restaurant.name,
+          prefecture: restaurant.prefecture,
+          city: restaurant.city,
+          postalCode: restaurant.postalCode,
+          address: formatStandardAddress(restaurant),
+          googleId: restaurant.googleId,
+        }),
+      });
+
+      const createData = await createResponse.json();
+
+      if (createResponse.ok && createData.id) {
+        // 成功建立新餐廳，導向評價建立頁面
+        router.push(`/reviews/new?restaurantId=${createData.id}`);
+      } else {
+        console.error("建立餐廳失敗:", createData.error || "未知錯誤");
+        toast.error(
+          `建立餐廳失敗: ${createData.error || TOAST_MESSAGES.ERROR.NETWORK_ERROR}`
+        );
+      }
+    } catch (error) {
+      console.error("選擇餐廳錯誤:", error);
+      toast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
+    }
+  };
+
+  const handleViewDetails = (restaurant: Restaurant) => {
+    // 建立 Google Maps 連結
+    const mapsUrl = `https://www.google.com/maps/place/?q=place_id:${restaurant.googleId}`;
+
+    // 在新分頁開啟 Google Maps
+    window.open(mapsUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -106,7 +158,14 @@ export default function SearchPage() {
               placeholder="輸入店名、地區或關鍵字..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              onKeyDown={(e) => {
+                // 只有在非組字狀態下，按Enter才執行搜尋
+                if (e.key === "Enter" && !isComposing) {
+                  handleSearch();
+                }
+              }}
               className="flex-1"
             />
             <Button onClick={handleSearch} disabled={isLoading}>
@@ -157,8 +216,9 @@ export default function SearchPage() {
             <div className="space-y-4">
               {results.map((restaurant) => (
                 <Card
-                  key={restaurant.id}
+                  key={restaurant.googleId}
                   className="hover:shadow-lg transition-shadow"
+                  data-testid="restaurant-card"
                 >
                   <CardContent className="p-6">
                     <div className="flex gap-4">
@@ -210,8 +270,17 @@ export default function SearchPage() {
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <Button size="sm">選擇此店舖</Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          size="sm"
+                          onClick={() => handleSelectRestaurant(restaurant)}
+                        >
+                          選擇此店舖
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetails(restaurant)}
+                        >
                           查看詳情
                         </Button>
                       </div>

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
+import Toaster from "@/components/toaster";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "Ramening - 日本拉麵評價紀錄工具",

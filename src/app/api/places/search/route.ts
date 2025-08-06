@@ -1,6 +1,6 @@
+import { parseJapaneseAddress } from "@/lib/utils";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { parseJapaneseAddress } from "@/lib/utils";
 
 // Google Places API 搜尋參數驗證 schema
 const SearchPlacesSchema = z.object({
@@ -40,7 +40,6 @@ interface GooglePlacesResponse {
   status: string;
   error_message?: string;
 }
-
 
 // GET /api/places/search - 搜尋拉麵店
 export async function GET(request: NextRequest) {
@@ -98,6 +97,53 @@ export async function GET(request: NextRequest) {
 
     if (data.status !== "OK") {
       console.error("Google Places API 錯誤:", data.error_message);
+
+      // 如果是計費或API金鑰問題，使用mock資料
+      if (
+        data.error_message?.includes("Billing") ||
+        data.error_message?.includes("API key")
+      ) {
+        console.warn("Google Places API 不可用，使用 mock 資料");
+        const mockRestaurants = [
+          {
+            googleId: "mock_place_1",
+            name: `${validatedData.query} 拉麵店`,
+            prefecture: "東京都",
+            city: "渋谷区",
+            postalCode: "1500042",
+            address: "宇田川町13-8",
+            fullAddress: "日本、東京都渋谷区宇田川町13-8",
+            location: {
+              lat: validatedData.location?.lat || 35.6762,
+              lng: validatedData.location?.lng || 139.6503,
+            },
+            rating: 4.2,
+            userRatingsTotal: 150,
+          },
+          {
+            googleId: "mock_place_2",
+            name: `麺や ${validatedData.query}`,
+            prefecture: "東京都",
+            city: "台東区",
+            postalCode: "1110053",
+            address: "浅草橋5-9-2",
+            fullAddress: "日本、東京都台東区浅草橋5-9-2",
+            location: {
+              lat: (validatedData.location?.lat || 35.6762) + 0.01,
+              lng: (validatedData.location?.lng || 139.6503) + 0.01,
+            },
+            rating: 4.5,
+            userRatingsTotal: 200,
+          },
+        ];
+
+        return NextResponse.json({
+          restaurants: mockRestaurants,
+          total: mockRestaurants.length,
+          note: "使用模擬資料（Google Places API 暫時不可用）",
+        });
+      }
+
       return NextResponse.json(
         { error: "Google Places API 搜尋失敗", details: data.error_message },
         { status: 500 }

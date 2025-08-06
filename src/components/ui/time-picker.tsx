@@ -44,7 +44,9 @@ export function TimePicker({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="justify-start text-left font-normal w-full"
+          className={`justify-start text-left font-normal w-full ${
+            !value ? "text-muted-foreground" : ""
+          }`}
         >
           <Clock className="mr-2 h-4 w-4" />
           {value || placeholder}

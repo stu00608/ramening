@@ -3,7 +3,7 @@
 import { Command as CommandPrimitive, useCommandState } from "cmdk";
 import { ChevronDownIcon, X } from "lucide-react";
 import * as React from "react";
-import { forwardRef, useEffect } from "react";
+import { forwardRef, useCallback, useEffect } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -116,13 +116,13 @@ function transToGroupOption(options: Option[], groupBy?: string) {
   }
 
   const groupOption: GroupOption = {};
-  options.forEach((option) => {
+  for (const option of options) {
     const key = (option[groupBy] as string) || "";
     if (!groupOption[key]) {
       groupOption[key] = [];
     }
     groupOption[key].push(option);
-  });
+  }
   return groupOption;
 }
 
@@ -211,6 +211,7 @@ const MultipleSelector = React.forwardRef<
     const [open, setOpen] = React.useState(false);
     const [onScrollbar, setOnScrollbar] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(false);
+    const [isClosing, setIsClosing] = React.useState(false);
     const dropdownRef = React.useRef<HTMLDivElement>(null);
 
     const [selected, setSelected] = React.useState<Option[]>(value || []);
@@ -231,17 +232,28 @@ const MultipleSelector = React.forwardRef<
       [selected]
     );
 
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
-      ) {
+    const closeDropdown = useCallback(() => {
+      setIsClosing(true);
+      setTimeout(() => {
         setOpen(false);
-        inputRef.current.blur();
-      }
-    };
+        setIsClosing(false);
+      }, 150); // 與動畫時長匹配
+    }, []);
+
+    const handleClickOutside = useCallback(
+      (event: MouseEvent | TouchEvent) => {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target as Node) &&
+          inputRef.current &&
+          !inputRef.current.contains(event.target as Node)
+        ) {
+          closeDropdown();
+          inputRef.current.blur();
+        }
+      },
+      [closeDropdown]
+    );
 
     const handleUnselect = React.useCallback(
       (option: Option) => {
@@ -285,7 +297,7 @@ const MultipleSelector = React.forwardRef<
         document.removeEventListener("mousedown", handleClickOutside);
         document.removeEventListener("touchend", handleClickOutside);
       };
-    }, [open]);
+    }, [open, handleClickOutside]);
 
     useEffect(() => {
       if (value) {
@@ -301,7 +313,7 @@ const MultipleSelector = React.forwardRef<
       if (JSON.stringify(newOption) !== JSON.stringify(options)) {
         setOptions(newOption);
       }
-    }, [arrayDefaultOptions, arrayOptions, groupBy, onSearch, options]);
+    }, [arrayOptions, groupBy, onSearch, options]);
 
     useEffect(() => {
       const doSearchSync = () => {
@@ -322,7 +334,13 @@ const MultipleSelector = React.forwardRef<
       };
 
       void exec();
-    }, [debouncedSearchTerm, groupBy, open, triggerSearchOnFocus]);
+    }, [
+      debouncedSearchTerm,
+      groupBy,
+      open,
+      triggerSearchOnFocus,
+      onSearchSync,
+    ]);
 
     useEffect(() => {
       const doSearch = async () => {
@@ -345,7 +363,7 @@ const MultipleSelector = React.forwardRef<
       };
 
       void exec();
-    }, [debouncedSearchTerm, groupBy, open, triggerSearchOnFocus]);
+    }, [debouncedSearchTerm, groupBy, open, triggerSearchOnFocus, onSearch]);
 
     const CreatableItem = () => {
       if (!creatable) return undefined;
@@ -453,6 +471,16 @@ const MultipleSelector = React.forwardRef<
             if (disabled) return;
             inputRef?.current?.focus();
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (!disabled) {
+                inputRef?.current?.focus();
+              }
+            }
+          }}
+          tabIndex={disabled ? -1 : 0}
+          aria-label="點擊以選擇選項"
         >
           <div className="relative flex flex-wrap gap-1">
             {selected.map((option) => {
@@ -501,7 +529,7 @@ const MultipleSelector = React.forwardRef<
               }}
               onBlur={(event) => {
                 if (!onScrollbar) {
-                  setOpen(false);
+                  closeDropdown();
                 }
                 inputProps?.onBlur?.(event);
               }}
@@ -553,9 +581,14 @@ const MultipleSelector = React.forwardRef<
           />
         </div>
         <div className="relative">
-          {open && (
+          {(open || isClosing) && (
             <CommandList
-              className="absolute top-1 z-10 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in"
+              className={cn(
+                "absolute top-1 z-10 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none duration-200",
+                open && !isClosing
+                  ? "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2"
+                  : "animate-out fade-out-0 zoom-out-95 slide-out-to-top-2"
+              )}
               onMouseLeave={() => {
                 setOnScrollbar(false);
               }}
@@ -581,38 +614,36 @@ const MultipleSelector = React.forwardRef<
                       heading={key}
                       className="h-full overflow-auto"
                     >
-                      <>
-                        {dropdowns.map((option) => {
-                          return (
-                            <CommandItem
-                              key={option.value}
-                              value={option.label}
-                              disabled={option.disable}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                              onSelect={() => {
-                                if (selected.length >= maxSelected) {
-                                  onMaxSelected?.(selected.length);
-                                  return;
-                                }
-                                setInputValue("");
-                                const newOptions = [...selected, option];
-                                setSelected(newOptions);
-                                onChange?.(newOptions);
-                              }}
-                              className={cn(
-                                "cursor-pointer",
-                                option.disable &&
-                                  "cursor-default text-muted-foreground"
-                              )}
-                            >
-                              {option.label}
-                            </CommandItem>
-                          );
-                        })}
-                      </>
+                      {dropdowns.map((option) => {
+                        return (
+                          <CommandItem
+                            key={option.value}
+                            value={option.label}
+                            disabled={option.disable}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onSelect={() => {
+                              if (selected.length >= maxSelected) {
+                                onMaxSelected?.(selected.length);
+                                return;
+                              }
+                              setInputValue("");
+                              const newOptions = [...selected, option];
+                              setSelected(newOptions);
+                              onChange?.(newOptions);
+                            }}
+                            className={cn(
+                              "cursor-pointer",
+                              option.disable &&
+                                "cursor-default text-muted-foreground"
+                            )}
+                          >
+                            {option.label}
+                          </CommandItem>
+                        );
+                      })}
                     </CommandGroup>
                   ))}
                 </>

@@ -37,20 +37,27 @@ const photoCategories = [
   "拉麵",
   "副餐",
   "店內環境",
-  "店家外觀", 
+  "店家外觀",
   "菜單",
   "其他",
 ];
 
 // 將 Canvas 轉換為 File
-function canvasToFile(canvas: HTMLCanvasElement, fileName: string): Promise<File> {
+function canvasToFile(
+  canvas: HTMLCanvasElement,
+  fileName: string
+): Promise<File> {
   return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], fileName, { type: "image/jpeg" });
-        resolve(file);
-      }
-    }, "image/jpeg", 0.8);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const file = new File([blob], fileName, { type: "image/jpeg" });
+          resolve(file);
+        }
+      },
+      "image/jpeg",
+      0.8
+    );
   });
 }
 
@@ -101,26 +108,29 @@ export function PhotoCropModal({
   const imgRef = useRef<HTMLImageElement>(null);
 
   // 當檔案改變時，創建圖片 URL
-  const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { width, height } = e.currentTarget;
-    
-    // 設定 1:1 裁切框，預設為圖片中央
-    const crop = centerCrop(
-      makeAspectCrop(
-        {
-          unit: "%",
-          width: 50,
-        },
-        1, // 1:1 比例
+  const onImageLoad = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement>) => {
+      const { width, height } = e.currentTarget;
+
+      // 設定 1:1 裁切框，預設為圖片中央
+      const crop = centerCrop(
+        makeAspectCrop(
+          {
+            unit: "%",
+            width: 50,
+          },
+          1, // 1:1 比例
+          width,
+          height
+        ),
         width,
         height
-      ),
-      width,
-      height
-    );
-    
-    setCrop(crop);
-  }, []);
+      );
+
+      setCrop(crop);
+    },
+    []
+  );
 
   // 當 modal 開啟且有檔案時，創建圖片 URL
   useEffect(() => {
@@ -146,7 +156,7 @@ export function PhotoCropModal({
         completedCrop,
         file.name
       );
-      
+
       onCropComplete(croppedFile, category);
       onOpenChange(false);
     } catch (error) {
@@ -216,10 +226,7 @@ export function PhotoCropModal({
           <Button variant="outline" onClick={handleCancel}>
             取消
           </Button>
-          <Button 
-            onClick={handleCropComplete}
-            disabled={!completedCrop}
-          >
+          <Button onClick={handleCropComplete} disabled={!completedCrop}>
             確認裁切
           </Button>
         </DialogFooter>

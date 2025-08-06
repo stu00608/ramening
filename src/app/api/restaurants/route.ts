@@ -19,12 +19,21 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const prefecture = searchParams.get("prefecture");
     const city = searchParams.get("city");
+    const googleId = searchParams.get("googleId");
     const page = Number.parseInt(searchParams.get("page") || "1");
     const limit = Number.parseInt(searchParams.get("limit") || "10");
 
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: {
+      OR?: Array<{
+        name?: { contains: string; mode: "insensitive" };
+        address?: { contains: string; mode: "insensitive" };
+      }>;
+      prefecture?: string;
+      city?: string;
+      googleId?: string;
+    } = {};
 
     if (search) {
       where.OR = [
@@ -39,6 +48,10 @@ export async function GET(request: NextRequest) {
 
     if (city) {
       where.city = city;
+    }
+
+    if (googleId) {
+      where.googleId = googleId;
     }
 
     const [restaurants, total] = await Promise.all([
