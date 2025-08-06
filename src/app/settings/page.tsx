@@ -162,8 +162,8 @@ export default function SettingsPage() {
   // 清除所有資料
   const clearAllData = async () => {
     try {
-      // 這裡應該呼叫清除所有資料的 API
-      // await fetch('/api/data/clear', { method: 'DELETE' });
+      // TODO: 實作清除所有資料的 API 並在此呼叫
+      // 計畫：建立 /api/data/clear 端點 (DELETE 方法)，此處 await fetch('/api/data/clear', { method: 'DELETE' })，以同步清除伺服器端資料
 
       localStorage.clear();
       setSettings(defaultSettings);

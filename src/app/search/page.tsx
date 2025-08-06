@@ -124,7 +124,7 @@ export default function SearchPage() {
       }
     } catch (error) {
       console.error("選擇餐廳錯誤:", error);
-      toast.error(`選擇餐廳失敗: ${TOAST_MESSAGES.ERROR.NETWORK_ERROR}`);
+      toast.error(TOAST_MESSAGES.ERROR.NETWORK_ERROR);
     }
   };
 

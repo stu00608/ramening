@@ -30,7 +30,7 @@ services:
     container_name: ramening-web
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ramening_dev
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/ramening_dev}
       - NEXTAUTH_SECRET=ramening-dev-secret-key-change-in-production
       - NEXTAUTH_URL=http://localhost:3000
       - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY}

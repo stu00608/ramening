@@ -262,19 +262,22 @@ export default function ReviewsPage() {
   };
 
   const renderStars = (rating: number) => {
-    const stars = ["first", "second", "third", "fourth", "fifth"];
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={`star-${stars[i]}`}
-        className={`h-4 w-4 ${
-          i < Math.floor(rating)
-            ? "fill-yellow-400 text-yellow-400"
-            : i < rating
-              ? "fill-yellow-400/50 text-yellow-400"
-              : "text-gray-300"
-        }`}
-      />
-    ));
+    const starElements = [];
+    for (let i = 0; i < 5; i++) {
+      starElements.push(
+        <Star
+          key={`star-position-${i}`}
+          className={`h-4 w-4 ${
+            i < Math.floor(rating)
+              ? "fill-yellow-400 text-yellow-400"
+              : i < rating
+                ? "fill-yellow-400/50 text-yellow-400"
+                : "text-gray-300"
+          }`}
+        />
+      );
+    }
+    return starElements;
   };
 
   const getRamenPhoto = (review: Review) => {

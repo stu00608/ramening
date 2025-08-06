@@ -46,9 +46,10 @@ interface Station {
 
 interface ErrorDetail {
   message: string;
+  status?: number;
 }
 
-// 付款方式選項  
+// 付款方式選項
 const paymentMethods: Option[] = [...FORM_OPTIONS.PAYMENT_METHODS];
 
 // 推薦標籤現在從餐廳歷史評價中動態載入
@@ -224,34 +225,79 @@ function NewReviewPageContent() {
           const BATCH_SIZE = 3;
           const stationsWithWalkingTime = [];
 
+          // 指數退避參數
+          const INITIAL_DELAY = 100; // ms
+          const MAX_DELAY = 2000; // ms
+          const BACKOFF_MULTIPLIER = 2;
+
+          // 指數退避函數
+          async function exponentialBackoff<T>(
+            fn: () => Promise<T>,
+            maxRetries = 5
+          ): Promise<T> {
+            let delay = INITIAL_DELAY;
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+              try {
+                return await fn();
+              } catch (err: unknown) {
+                const error = err as ErrorDetail;
+                // 只對速率限制錯誤 (HTTP 429) 進行退避
+                if (error && error.status === 429) {
+                  if (attempt === maxRetries - 1) throw error;
+                  await new Promise((resolve) => setTimeout(resolve, delay));
+                  delay = Math.min(delay * BACKOFF_MULTIPLIER, MAX_DELAY);
+                } else {
+                  throw error;
+                }
+              }
+            }
+            throw new Error("Max retries exceeded");
+          }
+
           for (let i = 0; i < stations.length; i += BATCH_SIZE) {
             const batch = stations.slice(i, i + BATCH_SIZE);
-            const batchResults = await Promise.all(
-              batch.map(async (station: Station) => {
-                try {
-                  const walkingResponse = await fetch(
-                    `/api/directions/walking?originPlaceId=${restaurant.googleId}&destinationPlaceId=${station.placeId}`
-                  );
+            // 使用指數退避包裝批次處理
+            const batchResults = await exponentialBackoff(async () => {
+              return await Promise.all(
+                batch.map(async (station: Station) => {
+                  try {
+                    const walkingResponse = await fetch(
+                      `/api/directions/walking?originPlaceId=${restaurant.googleId}&destinationPlaceId=${station.placeId}`
+                    );
 
-                  if (walkingResponse.ok) {
-                    const walkingData = await walkingResponse.json();
-                    return {
-                      ...station,
-                      walkingTime: walkingData.duration.minutes,
-                    };
+                    if (walkingResponse.ok) {
+                      const walkingData = await walkingResponse.json();
+                      return {
+                        ...station,
+                        walkingTime: walkingData.duration.minutes,
+                      };
+                    }
+                    if (walkingResponse.status === 429) {
+                      // 拋出錯誤以觸發退避機制
+                      const rateLimitError = new Error(
+                        "Rate limited"
+                      ) as ErrorDetail;
+                      rateLimitError.status = 429;
+                      throw rateLimitError;
+                    }
+                    return station;
+                  } catch (error) {
+                    console.error(
+                      `計算到${station.name}的徒步時間失敗:`,
+                      error
+                    );
+                    return station;
                   }
-                  return station;
-                } catch (error) {
-                  console.error(`計算到${station.name}的徒步時間失敗:`, error);
-                  return station;
-                }
-              })
-            );
+                })
+              );
+            });
             stationsWithWalkingTime.push(...batchResults);
 
-            // 避免API速率限制
+            // 在成功後仍加一個最小延遲，避免過快
             if (i + BATCH_SIZE < stations.length) {
-              await new Promise((resolve) => setTimeout(resolve, 100));
+              await new Promise((resolve) =>
+                setTimeout(resolve, INITIAL_DELAY)
+              );
             }
           }
 
